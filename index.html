@@ -1,0 +1,798 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Kanban SESE</title>
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Crect width='100' height='100' rx='20' fill='%233b5cff'/%3E%3Ctext x='50' y='68' font-family='sans-serif' font-size='60' font-weight='700' fill='white' text-anchor='middle'%3EK%3C/text%3E%3C/svg%3E">
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700;800&display=swap');
+
+  :root {
+    --bg: #0a0a0b;
+    --bg-soft: #111113;
+    --surface: #18181b;
+    --surface-hover: #1f1f23;
+    --border: #27272a;
+    --border-soft: #1f1f23;
+    --text: #fafafa;
+    --text-dim: #a1a1aa;
+    --text-faint: #71717a;
+    --accent: #3b5cff;
+    --accent-hover: #5b78ff;
+    --accent-soft: #1a2240;
+    --danger: #e11d48;
+  }
+
+  * { box-sizing: border-box; margin: 0; padding: 0; font-family: inherit; }
+  html, body { height: 100%; }
+  body {
+    font-family: 'Poppins', -apple-system, BlinkMacSystemFont, sans-serif;
+    color: var(--text);
+    background: var(--bg);
+    letter-spacing: -0.005em;
+    -webkit-font-smoothing: antialiased;
+  }
+  #root { min-height: 100vh; }
+  .font-display { font-family: 'Poppins', sans-serif; font-weight: 600; letter-spacing: -0.02em; }
+  .font-mono { font-family: 'Poppins', sans-serif; font-weight: 500; letter-spacing: 0; }
+
+  .scrollbar-thin::-webkit-scrollbar { height: 8px; width: 8px; }
+  .scrollbar-thin::-webkit-scrollbar-track { background: transparent; }
+  .scrollbar-thin::-webkit-scrollbar-thumb { background: #27272a; border-radius: 4px; }
+  .scrollbar-thin::-webkit-scrollbar-thumb:hover { background: #3f3f46; }
+
+  @keyframes fadeIn { from { opacity: 0; transform: translateY(4px); } to { opacity: 1; transform: translateY(0); } }
+  .fade-in { animation: fadeIn 0.18s ease-out; }
+  @keyframes modalIn { from { opacity: 0; transform: scale(0.96); } to { opacity: 1; transform: scale(1); } }
+  .modal-in { animation: modalIn 0.15s ease-out; }
+  @keyframes spin { to { transform: rotate(360deg); } }
+  .spin { animation: spin 1s linear infinite; }
+
+  .card-dragging { opacity: 0.4; }
+  .column-drop-active { background: rgba(59, 92, 255, 0.07) !important; }
+
+  input.kbn, textarea.kbn, select.kbn {
+    background: var(--bg-soft);
+    border: 1px solid var(--border);
+    color: var(--text);
+    border-radius: 6px;
+    padding: 8px 12px;
+    font-family: inherit;
+    font-size: 14px;
+    outline: none;
+    transition: border-color 0.15s, box-shadow 0.15s;
+    width: 100%;
+  }
+  input.kbn:focus, textarea.kbn:focus, select.kbn:focus {
+    border-color: var(--accent);
+    box-shadow: 0 0 0 3px rgba(59, 92, 255, 0.18);
+  }
+  select.kbn { appearance: none; -webkit-appearance: none; background-image: url("data:image/svg+xml;charset=UTF-8,%3csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%2371717a' stroke-width='2'%3e%3cpolyline points='6 9 12 15 18 9'/%3e%3c/svg%3e"); background-repeat: no-repeat; background-position: right 8px center; background-size: 14px; padding-right: 28px; }
+
+  .btn {
+    display: inline-flex; align-items: center; gap: 6px;
+    padding: 7px 12px; border-radius: 6px; font-size: 13px; font-weight: 500;
+    border: 1px solid transparent; cursor: pointer; transition: all 0.12s;
+    font-family: inherit; background: transparent; color: inherit;
+  }
+  .btn-primary { background: var(--accent); color: #ffffff; }
+  .btn-primary:hover { background: var(--accent-hover); }
+  .btn-ghost { background: transparent; color: var(--text-dim); }
+  .btn-ghost:hover { background: var(--surface); color: var(--text); }
+  .btn-outline { background: transparent; color: var(--text); border-color: var(--border); }
+  .btn-outline:hover { background: var(--surface); border-color: #3f3f46; }
+  .btn-danger { background: transparent; color: var(--danger); }
+  .btn-danger:hover { background: rgba(225, 29, 72, 0.08); }
+
+  .hover-bg:hover { background: rgba(255,255,255,0.05); }
+  .hover-row:hover .row-action { opacity: 1; }
+  .row-action { opacity: 0; transition: opacity 0.12s; }
+
+  /* utilities */
+  .flex { display: flex; }
+  .flex-col { flex-direction: column; }
+  .flex-1 { flex: 1; }
+  .flex-wrap { flex-wrap: wrap; }
+  .items-center { align-items: center; }
+  .items-start { align-items: flex-start; }
+  .items-baseline { align-items: baseline; }
+  .justify-between { justify-content: space-between; }
+  .justify-center { justify-content: center; }
+  .gap-1 { gap: 4px; }
+  .gap-1\.5 { gap: 6px; }
+  .gap-2 { gap: 8px; }
+  .gap-2\.5 { gap: 10px; }
+  .gap-3 { gap: 12px; }
+  .gap-4 { gap: 16px; }
+  .min-w-0 { min-width: 0; }
+  .truncate { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .relative { position: relative; }
+  .absolute { position: absolute; }
+  .fixed { position: fixed; }
+  .sticky { position: sticky; }
+  .inset-0 { top: 0; right: 0; bottom: 0; left: 0; }
+  .top-0 { top: 0; }
+  .z-10 { z-index: 10; }
+  .z-20 { z-index: 20; }
+  .z-30 { z-index: 30; }
+  .z-50 { z-index: 50; }
+  .w-full { width: 100%; }
+  .overflow-y-auto { overflow-y: auto; }
+  .overflow-x-auto { overflow-x: auto; }
+  .overflow-hidden { overflow: hidden; }
+  .rounded { border-radius: 4px; }
+  .rounded-md { border-radius: 6px; }
+  .rounded-lg { border-radius: 8px; }
+  .rounded-xl { border-radius: 12px; }
+  .rounded-full { border-radius: 9999px; }
+  .text-left { text-align: left; }
+</style>
+</head>
+<body>
+<div id="root"></div>
+
+<script crossorigin src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
+<script crossorigin src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
+<script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+
+<script type="text/babel" data-presets="react">
+const { useState, useEffect, useRef, useCallback } = React;
+
+// ============================================================
+// LOGO SESE (embutida)
+// ============================================================
+const LOGO_DATA_URI = 'data:image/jpeg;base64,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';
+
+// ============================================================
+// CONSTANTS
+// ============================================================
+const STORAGE_KEY = 'kanban-sese-state-v1';
+
+const LABEL_COLORS = [
+  { id: 'amber',   name: 'Âmbar',     bg: '#f59e0b' },
+  { id: 'rose',    name: 'Rosa',      bg: '#e11d48' },
+  { id: 'emerald', name: 'Verde',     bg: '#10b981' },
+  { id: 'sky',     name: 'Azul',      bg: '#0ea5e9' },
+  { id: 'violet',  name: 'Violeta',   bg: '#8b5cf6' },
+  { id: 'zinc',    name: 'Cinza',     bg: '#71717a' },
+];
+
+const PRIORITIES = {
+  low:    { label: 'Baixa',  dot: '#71717a' },
+  medium: { label: 'Média',  dot: '#f59e0b' },
+  high:   { label: 'Alta',   dot: '#e11d48' },
+};
+
+const uid = (prefix = 'id') =>
+  `${prefix}_${Date.now().toString(36)}_${Math.random().toString(36).slice(2, 8)}`;
+
+const INITIAL_STATE = () => {
+  const boardId = uid('b');
+  return {
+    activeBoardId: boardId,
+    boards: [{
+      id: boardId, name: 'Projeto Exemplo', createdAt: Date.now(),
+      columns: [
+        { id: uid('c'), name: 'Backlog', cards: [
+          { id: uid('card'), title: 'Definir escopo do MVP', description: 'Listar funcionalidades essenciais e cortar o resto pra v2.', labels: ['emerald'], priority: 'high', dueDate: '', assignee: 'Você', createdAt: Date.now() },
+          { id: uid('card'), title: 'Pesquisa de concorrentes', description: '', labels: ['sky'], priority: 'low', dueDate: '', assignee: '', createdAt: Date.now() },
+        ]},
+        { id: uid('c'), name: 'Em andamento', cards: [
+          { id: uid('card'), title: 'Wireframes da tela de login', description: 'Versão mobile e desktop.', labels: ['amber', 'violet'], priority: 'medium', dueDate: '', assignee: 'Designer', createdAt: Date.now() },
+        ]},
+        { id: uid('c'), name: 'Em revisão', cards: [] },
+        { id: uid('c'), name: 'Concluído', cards: [
+          { id: uid('card'), title: 'Kickoff com o time', description: '', labels: ['zinc'], priority: 'low', dueDate: '', assignee: '', createdAt: Date.now() },
+        ]},
+      ],
+    }],
+  };
+};
+
+// ============================================================
+// STORAGE (localStorage)
+// ============================================================
+const loadState = () => {
+  try {
+    const raw = localStorage.getItem(STORAGE_KEY);
+    return raw ? JSON.parse(raw) : null;
+  } catch (e) { return null; }
+};
+const saveState = (state) => {
+  try { localStorage.setItem(STORAGE_KEY, JSON.stringify(state)); return true; }
+  catch (e) { console.error(e); return false; }
+};
+
+// ============================================================
+// ÍCONES (SVG inline)
+// ============================================================
+const Svg = ({ size = 16, children, style, className }) => (
+  <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor"
+       strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" style={style} className={className}>
+    {children}
+  </svg>
+);
+const Plus    = (p) => <Svg {...p}><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></Svg>;
+const X       = (p) => <Svg {...p}><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></Svg>;
+const Trash2  = (p) => <Svg {...p}><polyline points="3 6 5 6 21 6"/><path d="M19,6V20A2,2,0,0,1,17,22H7A2,2,0,0,1,5,20V6M8,6V4A2,2,0,0,1,10,2H14A2,2,0,0,1,16,4V6"/><line x1="10" y1="11" x2="10" y2="17"/><line x1="14" y1="11" x2="14" y2="17"/></Svg>;
+const Calendar= (p) => <Svg {...p}><rect x="3" y="4" width="18" height="18" rx="2" ry="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></Svg>;
+const Edit3   = (p) => <Svg {...p}><path d="M12 20h9"/><path d="M16.5 3.5a2.121 2.121 0 0 1 3 3L7 19l-4 1 1-4L16.5 3.5z"/></Svg>;
+const ChevronDown = (p) => <Svg {...p}><polyline points="6 9 12 15 18 9"/></Svg>;
+const Check   = (p) => <Svg {...p}><polyline points="20 6 9 17 4 12"/></Svg>;
+const Layers  = (p) => <Svg {...p}><polygon points="12 2 2 7 12 12 22 7 12 2"/><polyline points="2 17 12 22 22 17"/><polyline points="2 12 12 17 22 12"/></Svg>;
+const MoreHorizontal = (p) => <Svg {...p}><circle cx="12" cy="12" r="1"/><circle cx="19" cy="12" r="1"/><circle cx="5" cy="12" r="1"/></Svg>;
+const Search  = (p) => <Svg {...p}><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></Svg>;
+const AlertCircle = (p) => <Svg {...p}><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></Svg>;
+const Loader2 = (p) => <Svg {...p}><path d="M21 12a9 9 0 1 1-6.219-8.56"/></Svg>;
+const Download= (p) => <Svg {...p}><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></Svg>;
+const Upload  = (p) => <Svg {...p}><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></Svg>;
+
+// ============================================================
+// SUB-COMPONENTES
+// ============================================================
+function LabelTag({ colorId, onRemove }) {
+  const c = LABEL_COLORS.find(l => l.id === colorId);
+  if (!c) return null;
+  return (
+    <span style={{ background: c.bg + '22', color: c.bg, border: `1px solid ${c.bg}44`, padding: '2px 8px', borderRadius: 4, fontSize: 11, fontWeight: 500, display: 'inline-flex', alignItems: 'center', gap: 4 }}>
+      {c.name}
+      {onRemove && <button onClick={onRemove} style={{ background: 'none', border: 'none', color: 'inherit', cursor: 'pointer', padding: 0 }}><X size={10} /></button>}
+    </span>
+  );
+}
+
+function PriorityDot({ priority }) {
+  const p = PRIORITIES[priority] || PRIORITIES.low;
+  return (
+    <span style={{ display: 'inline-flex', alignItems: 'center', gap: 6, fontSize: 11, color: 'var(--text-faint)' }}>
+      <span style={{ background: p.dot, width: 7, height: 7, borderRadius: '50%' }} />
+      {p.label}
+    </span>
+  );
+}
+
+function Card({ card, onClick, onDragStart, onDragEnd, isDragging }) {
+  const dueOverdue = card.dueDate && new Date(card.dueDate) < new Date(new Date().toDateString());
+  const [hover, setHover] = useState(false);
+  return (
+    <div draggable onDragStart={onDragStart} onDragEnd={onDragEnd} onClick={onClick}
+      onMouseEnter={() => setHover(true)} onMouseLeave={() => setHover(false)}
+      className={`fade-in ${isDragging ? 'card-dragging' : ''}`}
+      style={{
+        background: 'var(--surface)', border: `1px solid ${hover ? '#3f3f46' : 'var(--border)'}`,
+        borderRadius: 8, padding: 12, cursor: 'grab', transition: 'border-color 0.12s',
+      }}>
+      {card.labels?.length > 0 && (
+        <div className="flex flex-wrap gap-1" style={{ marginBottom: 8 }}>
+          {card.labels.map(l => <LabelTag key={l} colorId={l} />)}
+        </div>
+      )}
+      <div style={{ fontSize: 14, fontWeight: 500, lineHeight: 1.4, color: 'var(--text)' }}>{card.title}</div>
+      {card.description && (
+        <div style={{ fontSize: 12, marginTop: 6, color: 'var(--text-faint)', overflow: 'hidden' }}>
+          {card.description.length > 80 ? card.description.slice(0, 80) + '…' : card.description}
+        </div>
+      )}
+      <div className="flex items-center justify-between" style={{ gap: 8, marginTop: 10, paddingTop: 10, borderTop: '1px solid var(--border-soft)' }}>
+        <div className="flex items-center flex-wrap" style={{ gap: 10 }}>
+          {card.priority && card.priority !== 'low' && <PriorityDot priority={card.priority} />}
+          {card.dueDate && (
+            <span style={{ display: 'inline-flex', alignItems: 'center', gap: 4, fontSize: 11, color: dueOverdue ? 'var(--danger)' : 'var(--text-faint)' }}>
+              <Calendar size={11} />
+              {new Date(card.dueDate + 'T00:00:00').toLocaleDateString('pt-BR', { day: '2-digit', month: 'short' })}
+            </span>
+          )}
+        </div>
+        {card.assignee && (
+          <div title={card.assignee}
+            style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 10, fontWeight: 500, borderRadius: '50%', width: 22, height: 22, background: 'var(--bg-soft)', color: 'var(--text-dim)', border: '1px solid var(--border)' }}>
+            {card.assignee.slice(0, 2).toUpperCase()}
+          </div>
+        )}
+      </div>
+    </div>
+  );
+}
+
+function Column({ column, onAddCard, onRenameColumn, onDeleteColumn, onCardClick,
+  draggingCardId, onDragStartCard, onDragEndCard, onDropOnColumn, onDragOverColumn,
+  isDropTarget, searchTerm }) {
+  const [isAdding, setIsAdding] = useState(false);
+  const [newCardTitle, setNewCardTitle] = useState('');
+  const [editingName, setEditingName] = useState(false);
+  const [nameValue, setNameValue] = useState(column.name);
+  const [menuOpen, setMenuOpen] = useState(false);
+
+  const filteredCards = searchTerm
+    ? column.cards.filter(c => c.title.toLowerCase().includes(searchTerm.toLowerCase()) || c.description?.toLowerCase().includes(searchTerm.toLowerCase()))
+    : column.cards;
+
+  const submitNewCard = () => {
+    const t = newCardTitle.trim();
+    if (!t) { setIsAdding(false); return; }
+    onAddCard(column.id, t);
+    setNewCardTitle('');
+    setIsAdding(false);
+  };
+  const submitRename = () => {
+    const n = nameValue.trim();
+    if (n && n !== column.name) onRenameColumn(column.id, n);
+    else setNameValue(column.name);
+    setEditingName(false);
+  };
+
+  return (
+    <div onDragOver={(e) => { e.preventDefault(); onDragOverColumn(column.id); }}
+         onDrop={(e) => { e.preventDefault(); onDropOnColumn(column.id); }}
+         className={`flex flex-col rounded-lg ${isDropTarget ? 'column-drop-active' : ''}`}
+         style={{ background: 'var(--bg-soft)', border: '1px solid var(--border-soft)', minWidth: 290, maxWidth: 290, height: 'fit-content', maxHeight: 'calc(100vh - 180px)', transition: 'background 0.15s' }}>
+      <div className="flex items-center justify-between" style={{ padding: '12px 12px 8px' }}>
+        <div className="flex items-center gap-2 flex-1 min-w-0">
+          {editingName ? (
+            <input autoFocus className="kbn" style={{ padding: '4px 8px', fontSize: 13 }}
+              value={nameValue} onChange={e => setNameValue(e.target.value)} onBlur={submitRename}
+              onKeyDown={e => { if (e.key === 'Enter') submitRename(); if (e.key === 'Escape') { setNameValue(column.name); setEditingName(false); }}} />
+          ) : (
+            <button onClick={() => setEditingName(true)}
+              style={{ fontSize: 13, fontWeight: 600, color: 'var(--text)', background: 'none', border: 'none', cursor: 'pointer', textAlign: 'left', flex: 1, padding: 0 }}
+              className="truncate">
+              {column.name}
+            </button>
+          )}
+          <span className="font-mono" style={{ fontSize: 11, padding: '2px 6px', borderRadius: 4, background: 'var(--surface)', color: 'var(--text-faint)' }}>
+            {column.cards.length}
+          </span>
+        </div>
+        <div className="relative">
+          <button className="btn btn-ghost" style={{ padding: 4 }} onClick={() => setMenuOpen(!menuOpen)}>
+            <MoreHorizontal size={14} />
+          </button>
+          {menuOpen && (
+            <>
+              <div className="fixed inset-0 z-10" onClick={() => setMenuOpen(false)} />
+              <div className="absolute fade-in" style={{ right: 0, top: 28, zIndex: 20, background: 'var(--surface)', border: '1px solid var(--border)', minWidth: 150, borderRadius: 6, padding: '4px 0', boxShadow: '0 10px 30px rgba(0,0,0,0.4)' }}>
+                <button onClick={() => { setEditingName(true); setMenuOpen(false); }}
+                  className="hover-bg"
+                  style={{ width: '100%', textAlign: 'left', padding: '6px 12px', fontSize: 13, color: 'var(--text-dim)', background: 'none', border: 'none', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 8 }}>
+                  <Edit3 size={12} /> Renomear
+                </button>
+                <button onClick={() => { onDeleteColumn(column.id); setMenuOpen(false); }}
+                  className="hover-bg"
+                  style={{ width: '100%', textAlign: 'left', padding: '6px 12px', fontSize: 13, color: 'var(--danger)', background: 'none', border: 'none', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 8 }}>
+                  <Trash2 size={12} /> Excluir coluna
+                </button>
+              </div>
+            </>
+          )}
+        </div>
+      </div>
+
+      <div className="flex flex-col gap-2 overflow-y-auto scrollbar-thin" style={{ padding: '0 8px 8px', minHeight: 20 }}>
+        {filteredCards.map(card => (
+          <Card key={card.id} card={card} isDragging={draggingCardId === card.id}
+            onDragStart={() => onDragStartCard(card.id, column.id)}
+            onDragEnd={onDragEndCard}
+            onClick={() => onCardClick(card.id, column.id)} />
+        ))}
+        {column.cards.length === 0 && !isAdding && (
+          <div style={{ fontSize: 12, textAlign: 'center', padding: '12px 0', color: 'var(--text-faint)' }}>
+            Vazio. Arraste cards aqui.
+          </div>
+        )}
+      </div>
+
+      <div style={{ padding: '0 8px 8px' }}>
+        {isAdding ? (
+          <div className="flex flex-col gap-2" style={{ padding: 8, borderRadius: 8, background: 'var(--surface)', border: '1px solid var(--border)' }}>
+            <textarea autoFocus className="kbn" style={{ resize: 'none', minHeight: 60, fontSize: 13 }}
+              placeholder="Título do card…" value={newCardTitle}
+              onChange={e => setNewCardTitle(e.target.value)}
+              onKeyDown={e => {
+                if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); submitNewCard(); }
+                if (e.key === 'Escape') setIsAdding(false);
+              }} />
+            <div className="flex items-center gap-2">
+              <button className="btn btn-primary" onClick={submitNewCard}><Check size={13} /> Adicionar</button>
+              <button className="btn btn-ghost" onClick={() => { setIsAdding(false); setNewCardTitle(''); }}><X size={13} /></button>
+            </div>
+          </div>
+        ) : (
+          <button onClick={() => setIsAdding(true)}
+            style={{ width: '100%', display: 'flex', alignItems: 'center', gap: 6, padding: '8px 12px', borderRadius: 6, fontSize: 12, fontWeight: 500, color: 'var(--text-faint)', background: 'transparent', border: 'none', cursor: 'pointer', transition: 'all 0.12s' }}
+            onMouseEnter={e => { e.currentTarget.style.background = 'var(--surface)'; e.currentTarget.style.color = 'var(--text)'; }}
+            onMouseLeave={e => { e.currentTarget.style.background = 'transparent'; e.currentTarget.style.color = 'var(--text-faint)'; }}>
+            <Plus size={13} /> Novo card
+          </button>
+        )}
+      </div>
+    </div>
+  );
+}
+
+function CardModal({ card, columnId, columns, onSave, onDelete, onClose, onMove }) {
+  const [draft, setDraft] = useState(card);
+  useEffect(() => { setDraft(card); }, [card]);
+  if (!card) return null;
+
+  const toggleLabel = (lid) => {
+    const labels = draft.labels || [];
+    setDraft({ ...draft, labels: labels.includes(lid) ? labels.filter(x => x !== lid) : [...labels, lid] });
+  };
+  const save = () => { onSave(draft); onClose(); };
+
+  return (
+    <div className="fixed inset-0 z-50 flex items-center justify-center"
+         style={{ padding: 16, background: 'rgba(0,0,0,0.7)', backdropFilter: 'blur(4px)' }}
+         onClick={onClose}>
+      <div className="modal-in flex flex-col"
+        style={{ background: 'var(--bg-soft)', border: '1px solid var(--border)', width: '100%', maxWidth: 580, maxHeight: '90vh', borderRadius: 12, boxShadow: '0 20px 60px rgba(0,0,0,0.5)' }}
+        onClick={e => e.stopPropagation()}>
+        <div className="flex items-start justify-between" style={{ padding: '20px 20px 12px', borderBottom: '1px solid var(--border-soft)' }}>
+          <input className="kbn font-display"
+            style={{ fontSize: 20, fontWeight: 600, padding: '4px 8px', border: '1px solid transparent', background: 'transparent' }}
+            value={draft.title} onChange={e => setDraft({ ...draft, title: e.target.value })} placeholder="Título" />
+          <button onClick={onClose} className="btn btn-ghost" style={{ padding: 6 }}><X size={16} /></button>
+        </div>
+
+        <div className="overflow-y-auto scrollbar-thin flex flex-col gap-4" style={{ padding: 20 }}>
+          <div>
+            <label style={{ fontSize: 11, textTransform: 'uppercase', letterSpacing: '0.08em', fontWeight: 500, display: 'block', marginBottom: 6, color: 'var(--text-faint)' }}>Status (coluna)</label>
+            <select className="kbn" value={columnId} onChange={e => onMove(card.id, columnId, e.target.value)}>
+              {columns.map(c => <option key={c.id} value={c.id}>{c.name}</option>)}
+            </select>
+          </div>
+          <div>
+            <label style={{ fontSize: 11, textTransform: 'uppercase', letterSpacing: '0.08em', fontWeight: 500, display: 'block', marginBottom: 6, color: 'var(--text-faint)' }}>Descrição</label>
+            <textarea className="kbn" style={{ minHeight: 100, resize: 'vertical' }}
+              value={draft.description || ''} onChange={e => setDraft({ ...draft, description: e.target.value })}
+              placeholder="Detalhes, contexto, links…" />
+          </div>
+          <div>
+            <label style={{ fontSize: 11, textTransform: 'uppercase', letterSpacing: '0.08em', fontWeight: 500, display: 'block', marginBottom: 6, color: 'var(--text-faint)' }}>Etiquetas</label>
+            <div className="flex flex-wrap" style={{ gap: 6 }}>
+              {LABEL_COLORS.map(l => {
+                const active = (draft.labels || []).includes(l.id);
+                return (
+                  <button key={l.id} onClick={() => toggleLabel(l.id)}
+                    style={{ padding: '4px 10px', borderRadius: 4, fontSize: 11, fontWeight: 500, cursor: 'pointer', transition: 'all 0.12s',
+                      background: active ? l.bg : l.bg + '15',
+                      color: active ? '#0a0a0b' : l.bg,
+                      border: `1px solid ${l.bg}${active ? 'ff' : '40'}` }}>
+                    {l.name}
+                  </button>
+                );
+              })}
+            </div>
+          </div>
+          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: 12 }}>
+            <div>
+              <label style={{ fontSize: 11, textTransform: 'uppercase', letterSpacing: '0.08em', fontWeight: 500, display: 'block', marginBottom: 6, color: 'var(--text-faint)' }}>Prioridade</label>
+              <select className="kbn" value={draft.priority || 'low'} onChange={e => setDraft({ ...draft, priority: e.target.value })}>
+                {Object.entries(PRIORITIES).map(([k, v]) => <option key={k} value={k}>{v.label}</option>)}
+              </select>
+            </div>
+            <div>
+              <label style={{ fontSize: 11, textTransform: 'uppercase', letterSpacing: '0.08em', fontWeight: 500, display: 'block', marginBottom: 6, color: 'var(--text-faint)' }}>Responsável</label>
+              <input className="kbn" placeholder="Nome" value={draft.assignee || ''} onChange={e => setDraft({ ...draft, assignee: e.target.value })} />
+            </div>
+            <div>
+              <label style={{ fontSize: 11, textTransform: 'uppercase', letterSpacing: '0.08em', fontWeight: 500, display: 'block', marginBottom: 6, color: 'var(--text-faint)' }}>Prazo</label>
+              <input type="date" className="kbn" value={draft.dueDate || ''} onChange={e => setDraft({ ...draft, dueDate: e.target.value })} />
+            </div>
+          </div>
+        </div>
+
+        <div className="flex items-center justify-between" style={{ padding: 16, borderTop: '1px solid var(--border-soft)' }}>
+          <button className="btn btn-danger" onClick={() => { if (confirm('Excluir este card?')) { onDelete(card.id); onClose(); } }}>
+            <Trash2 size={13} /> Excluir
+          </button>
+          <div className="flex items-center gap-2">
+            <button className="btn btn-ghost" onClick={onClose}>Cancelar</button>
+            <button className="btn btn-primary" onClick={save}><Check size={13} /> Salvar</button>
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+function BoardSwitcher({ boards, activeBoardId, onSelect, onCreate, onDelete }) {
+  const [open, setOpen] = useState(false);
+  const [creating, setCreating] = useState(false);
+  const [newName, setNewName] = useState('');
+  const active = boards.find(b => b.id === activeBoardId);
+
+  const submit = () => {
+    const n = newName.trim();
+    if (n) { onCreate(n); setNewName(''); setCreating(false); setOpen(false); }
+  };
+
+  return (
+    <div className="relative">
+      <button onClick={() => setOpen(!open)} className="btn btn-outline" style={{ padding: '7px 14px' }}>
+        <Layers size={14} />
+        <span className="truncate" style={{ maxWidth: 200 }}>{active?.name || 'Sem board'}</span>
+        <ChevronDown size={14} style={{ opacity: 0.6 }} />
+      </button>
+      {open && (
+        <>
+          <div className="fixed inset-0 z-10" onClick={() => { setOpen(false); setCreating(false); }} />
+          <div className="absolute fade-in" style={{ left: 0, top: 44, zIndex: 20, background: 'var(--surface)', border: '1px solid var(--border)', minWidth: 280, borderRadius: 8, padding: '6px 0', boxShadow: '0 20px 50px rgba(0,0,0,0.5)' }}>
+            <div style={{ padding: '4px 12px', fontSize: 10, textTransform: 'uppercase', letterSpacing: '0.08em', fontWeight: 500, color: 'var(--text-faint)' }}>Seus boards</div>
+            {boards.map(b => (
+              <div key={b.id} className="flex items-center hover-row">
+                <button onClick={() => { onSelect(b.id); setOpen(false); }}
+                  className="flex-1 hover-bg"
+                  style={{ textAlign: 'left', padding: '6px 12px', fontSize: 13, background: 'none', border: 'none', cursor: 'pointer', color: b.id === activeBoardId ? 'var(--accent)' : 'var(--text-dim)', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                  <span className="truncate">{b.name}</span>
+                  {b.id === activeBoardId && <Check size={12} />}
+                </button>
+                {boards.length > 1 && (
+                  <button onClick={(e) => { e.stopPropagation(); if (confirm(`Excluir o board "${b.name}" e todos os cards?`)) onDelete(b.id); }}
+                    className="row-action"
+                    style={{ padding: '4px 8px', background: 'none', border: 'none', cursor: 'pointer', color: 'var(--danger)' }}>
+                    <Trash2 size={12} />
+                  </button>
+                )}
+              </div>
+            ))}
+            <div style={{ height: 1, background: 'var(--border-soft)', margin: '4px 0' }} />
+            {creating ? (
+              <div className="flex items-center gap-1" style={{ padding: '6px 8px' }}>
+                <input autoFocus className="kbn" style={{ padding: '4px 8px', fontSize: 13 }}
+                  placeholder="Nome do board…" value={newName} onChange={e => setNewName(e.target.value)}
+                  onKeyDown={e => { if (e.key === 'Enter') submit(); if (e.key === 'Escape') { setCreating(false); setNewName(''); } }} />
+                <button className="btn btn-primary" style={{ padding: 6 }} onClick={submit}><Check size={12} /></button>
+              </div>
+            ) : (
+              <button onClick={() => setCreating(true)}
+                className="hover-bg"
+                style={{ width: '100%', textAlign: 'left', padding: '6px 12px', fontSize: 13, background: 'none', border: 'none', cursor: 'pointer', color: 'var(--text)', display: 'flex', alignItems: 'center', gap: 8 }}>
+                <Plus size={12} /> Novo board
+              </button>
+            )}
+          </div>
+        </>
+      )}
+    </div>
+  );
+}
+
+// ============================================================
+// MAIN APP
+// ============================================================
+function KanbanApp() {
+  const [state, setState] = useState(null);
+  const [loading, setLoading] = useState(true);
+  const [openCardRef, setOpenCardRef] = useState(null);
+  const [draggingCard, setDraggingCard] = useState(null);
+  const [dropTarget, setDropTarget] = useState(null);
+  const [search, setSearch] = useState('');
+  const [saveStatus, setSaveStatus] = useState('idle');
+  const saveTimer = useRef(null);
+  const fileInputRef = useRef(null);
+
+  useEffect(() => {
+    const loaded = loadState();
+    setState(loaded || INITIAL_STATE());
+    setLoading(false);
+  }, []);
+
+  useEffect(() => {
+    if (!state || loading) return;
+    setSaveStatus('saving');
+    if (saveTimer.current) clearTimeout(saveTimer.current);
+    saveTimer.current = setTimeout(() => {
+      const ok = saveState(state);
+      setSaveStatus(ok ? 'saved' : 'error');
+      if (ok) setTimeout(() => setSaveStatus('idle'), 1500);
+    }, 300);
+    return () => { if (saveTimer.current) clearTimeout(saveTimer.current); };
+  }, [state, loading]);
+
+  const updateBoard = useCallback((boardId, updater) => {
+    setState(s => ({ ...s, boards: s.boards.map(b => b.id === boardId ? updater(b) : b) }));
+  }, []);
+  const activeBoard = state?.boards.find(b => b.id === state.activeBoardId);
+
+  const createBoard = (name) => {
+    const newBoard = {
+      id: uid('b'), name, createdAt: Date.now(),
+      columns: [
+        { id: uid('c'), name: 'A fazer', cards: [] },
+        { id: uid('c'), name: 'Em andamento', cards: [] },
+        { id: uid('c'), name: 'Concluído', cards: [] },
+      ],
+    };
+    setState(s => ({ ...s, boards: [...s.boards, newBoard], activeBoardId: newBoard.id }));
+  };
+  const deleteBoard = (id) => {
+    setState(s => {
+      const remaining = s.boards.filter(b => b.id !== id);
+      if (remaining.length === 0) return INITIAL_STATE();
+      return { ...s, boards: remaining, activeBoardId: remaining[0].id };
+    });
+  };
+
+  const addColumn = () => {
+    const name = prompt('Nome da nova coluna:');
+    if (!name?.trim()) return;
+    updateBoard(activeBoard.id, b => ({ ...b, columns: [...b.columns, { id: uid('c'), name: name.trim(), cards: [] }] }));
+  };
+  const renameColumn = (colId, newName) => {
+    updateBoard(activeBoard.id, b => ({ ...b, columns: b.columns.map(c => c.id === colId ? { ...c, name: newName } : c) }));
+  };
+  const deleteColumn = (colId) => {
+    const col = activeBoard.columns.find(c => c.id === colId);
+    if (col.cards.length > 0 && !confirm(`A coluna "${col.name}" tem ${col.cards.length} card(s). Excluir mesmo assim?`)) return;
+    updateBoard(activeBoard.id, b => ({ ...b, columns: b.columns.filter(c => c.id !== colId) }));
+  };
+
+  const addCard = (columnId, title) => {
+    const card = { id: uid('card'), title, description: '', labels: [], priority: 'low', dueDate: '', assignee: '', createdAt: Date.now() };
+    updateBoard(activeBoard.id, b => ({ ...b, columns: b.columns.map(c => c.id === columnId ? { ...c, cards: [...c.cards, card] } : c) }));
+  };
+  const saveCard = (updatedCard) => {
+    updateBoard(activeBoard.id, b => ({ ...b, columns: b.columns.map(c => ({ ...c, cards: c.cards.map(card => card.id === updatedCard.id ? updatedCard : card) })) }));
+  };
+  const deleteCard = (cardId) => {
+    updateBoard(activeBoard.id, b => ({ ...b, columns: b.columns.map(c => ({ ...c, cards: c.cards.filter(card => card.id !== cardId) })) }));
+  };
+  const moveCard = (cardId, fromColumnId, toColumnId) => {
+    if (fromColumnId === toColumnId) return;
+    updateBoard(activeBoard.id, b => {
+      let movingCard = null;
+      const columns = b.columns.map(c => {
+        if (c.id === fromColumnId) {
+          const card = c.cards.find(x => x.id === cardId);
+          if (card) movingCard = card;
+          return { ...c, cards: c.cards.filter(x => x.id !== cardId) };
+        }
+        return c;
+      });
+      if (!movingCard) return b;
+      return { ...b, columns: columns.map(c => c.id === toColumnId ? { ...c, cards: [...c.cards, movingCard] } : c) };
+    });
+    setOpenCardRef(prev => prev && prev.cardId === cardId ? { ...prev, columnId: toColumnId } : prev);
+  };
+
+  // Export/Import
+  const exportJSON = () => {
+    const blob = new Blob([JSON.stringify(state, null, 2)], { type: 'application/json' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    const date = new Date().toISOString().slice(0, 10);
+    a.href = url;
+    a.download = `kanban-sese-${date}.json`;
+    a.click();
+    URL.revokeObjectURL(url);
+  };
+  const handleImport = (e) => {
+    const file = e.target.files[0];
+    if (!file) return;
+    const reader = new FileReader();
+    reader.onload = (ev) => {
+      try {
+        const data = JSON.parse(ev.target.result);
+        if (!data.boards || !Array.isArray(data.boards)) throw new Error('Formato inválido');
+        if (!confirm(`Importar este arquivo? Os dados atuais serão SUBSTITUÍDOS (${data.boards.length} board(s) encontrados).`)) {
+          e.target.value = '';
+          return;
+        }
+        setState(data);
+      } catch (err) {
+        alert('Arquivo inválido: ' + err.message);
+      }
+      e.target.value = '';
+    };
+    reader.readAsText(file);
+  };
+
+  const handleDragStart = (cardId, fromColumnId) => setDraggingCard({ cardId, fromColumnId });
+  const handleDragEnd = () => { setDraggingCard(null); setDropTarget(null); };
+  const handleDragOver = (columnId) => setDropTarget(columnId);
+  const handleDrop = (toColumnId) => {
+    if (draggingCard) moveCard(draggingCard.cardId, draggingCard.fromColumnId, toColumnId);
+    setDraggingCard(null); setDropTarget(null);
+  };
+  const openCard = (cardId, columnId) => setOpenCardRef({ cardId, columnId });
+  const currentOpenCard = openCardRef && activeBoard
+    ? activeBoard.columns.find(c => c.id === openCardRef.columnId)?.cards.find(x => x.id === openCardRef.cardId)
+    : null;
+
+  if (loading || !state) {
+    return (
+      <div className="flex items-center justify-center" style={{ minHeight: '100vh' }}>
+        <Loader2 size={24} className="spin" style={{ color: 'var(--accent)' }} />
+      </div>
+    );
+  }
+
+  return (
+    <div>
+      <header className="flex items-center justify-between sticky top-0 z-30"
+        style={{ padding: '12px 20px', background: 'rgba(10, 10, 11, 0.85)', backdropFilter: 'blur(10px)', borderBottom: '1px solid var(--border-soft)' }}>
+        <div className="flex items-center gap-4">
+          <div className="flex items-center gap-3">
+            <div style={{ width: 64, height: 30, background: '#ffffff', padding: '4px 6px', borderRadius: 6, display: 'flex', alignItems: 'center', justifyContent: 'center', overflow: 'hidden' }}>
+              <img src={LOGO_DATA_URI} alt="SESE" style={{ width: '100%', height: '100%', objectFit: 'contain', display: 'block' }} />
+            </div>
+            <div className="flex flex-col" style={{ lineHeight: 1.2 }}>
+              <span className="font-display" style={{ fontSize: 16, fontWeight: 600 }}>Kanban SESE</span>
+              <span className="font-mono" style={{ fontSize: 10, textTransform: 'uppercase', letterSpacing: '0.12em', color: 'var(--text-faint)' }}>local · este dispositivo</span>
+            </div>
+          </div>
+          <div style={{ width: 1, height: 24, background: 'var(--border)' }} />
+          <BoardSwitcher boards={state.boards} activeBoardId={state.activeBoardId}
+            onSelect={(id) => setState(s => ({ ...s, activeBoardId: id }))}
+            onCreate={createBoard} onDelete={deleteBoard} />
+        </div>
+
+        <div className="flex items-center gap-3">
+          <div className="relative">
+            <Search size={14} style={{ position: 'absolute', left: 10, top: '50%', transform: 'translateY(-50%)', color: 'var(--text-faint)' }} />
+            <input className="kbn" placeholder="Buscar cards…" style={{ paddingLeft: 32, width: 200, fontSize: 13 }}
+              value={search} onChange={e => setSearch(e.target.value)} />
+          </div>
+
+          <input ref={fileInputRef} type="file" accept=".json,application/json" style={{ display: 'none' }} onChange={handleImport} />
+          <button className="btn btn-outline" onClick={() => fileInputRef.current?.click()} title="Importar JSON">
+            <Upload size={13} /> Importar
+          </button>
+          <button className="btn btn-outline" onClick={exportJSON} title="Exportar JSON">
+            <Download size={13} /> Exportar
+          </button>
+
+          <div className="font-mono flex items-center gap-1" style={{ fontSize: 11, color: 'var(--text-faint)', minWidth: 70 }}>
+            {saveStatus === 'saving' && (<><Loader2 size={11} className="spin" /> salvando</>)}
+            {saveStatus === 'saved' && (<><Check size={11} style={{ color: '#10b981' }} /> salvo</>)}
+            {saveStatus === 'error' && (<><AlertCircle size={11} style={{ color: 'var(--danger)' }} /> erro</>)}
+          </div>
+        </div>
+      </header>
+
+      <main style={{ padding: '20px' }}>
+        {activeBoard && (
+          <>
+            <div className="flex items-baseline gap-3" style={{ marginBottom: 16 }}>
+              <h1 className="font-display" style={{ fontSize: 28, fontWeight: 600, letterSpacing: '-0.02em' }}>{activeBoard.name}</h1>
+              <span className="font-mono" style={{ fontSize: 11, color: 'var(--text-faint)' }}>
+                {activeBoard.columns.reduce((acc, c) => acc + c.cards.length, 0)} cards · {activeBoard.columns.length} colunas
+              </span>
+            </div>
+
+            <div className="flex overflow-x-auto scrollbar-thin" style={{ gap: 12, paddingBottom: 16, alignItems: 'flex-start' }}>
+              {activeBoard.columns.map(col => (
+                <Column key={col.id} column={col}
+                  onAddCard={addCard} onRenameColumn={renameColumn} onDeleteColumn={deleteColumn}
+                  onCardClick={openCard}
+                  draggingCardId={draggingCard?.cardId}
+                  onDragStartCard={handleDragStart} onDragEndCard={handleDragEnd}
+                  onDropOnColumn={handleDrop} onDragOverColumn={handleDragOver}
+                  isDropTarget={dropTarget === col.id} searchTerm={search} />
+              ))}
+              <button onClick={addColumn}
+                style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '0 16px', borderRadius: 8, fontSize: 13, fontWeight: 500, minWidth: 220, height: 44, background: 'transparent', border: '1px dashed var(--border)', color: 'var(--text-faint)', cursor: 'pointer', transition: 'all 0.12s' }}
+                onMouseEnter={e => { e.currentTarget.style.background = 'var(--bg-soft)'; e.currentTarget.style.color = 'var(--text)'; e.currentTarget.style.borderColor = 'var(--accent)'; }}
+                onMouseLeave={e => { e.currentTarget.style.background = 'transparent'; e.currentTarget.style.color = 'var(--text-faint)'; e.currentTarget.style.borderColor = 'var(--border)'; }}>
+                <Plus size={14} /> Nova coluna
+              </button>
+            </div>
+          </>
+        )}
+      </main>
+
+      {currentOpenCard && (
+        <CardModal card={currentOpenCard} columnId={openCardRef.columnId}
+          columns={activeBoard.columns} onSave={saveCard} onDelete={deleteCard}
+          onClose={() => setOpenCardRef(null)} onMove={moveCard} />
+      )}
+    </div>
+  );
+}
+
+ReactDOM.createRoot(document.getElementById('root')).render(<KanbanApp />);
+</script>
+</body>
+</html>
