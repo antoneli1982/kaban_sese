@@ -128,6 +128,41 @@
   .rounded-full { border-radius: 9999px; }
   .text-left { text-align: left; }
 </style>
+
+<!-- ============================================================ -->
+<!-- 🔥 CONFIGURAÇÃO DO FIREBASE                                  -->
+<!-- Substitua os valores abaixo pelos do SEU projeto Firebase.   -->
+<!-- Pegue em: console.firebase.google.com → seu projeto →        -->
+<!-- ⚙ Configurações do projeto → Seus apps → Configuração SDK   -->
+<!-- ============================================================ -->
+<script type="module">
+  import { initializeApp } from 'https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js';
+  import { getFirestore, doc, onSnapshot, setDoc, serverTimestamp }
+    from 'https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js';
+
+  const firebaseConfig = {
+    apiKey:            "AIzaSyBkMExgH4QaBJIrfb8fz_ptBUsKZd2icNw",
+    authDomain:        "kanban-99a99.firebaseapp.com",
+    projectId:         "kanban-99a99",
+    storageBucket:     "kanban-99a99.firebasestorage.app",
+    messagingSenderId: "25285635644",
+    appId:             "1:25285635644:web:50f5bfb1187680862d5d39"
+  };
+
+  if (firebaseConfig.apiKey === "COLE_AQUI") {
+    window.__fbNotConfigured = true;
+  } else {
+    try {
+      const app = initializeApp(firebaseConfig);
+      const db  = getFirestore(app);
+      window.fb = { db, doc, onSnapshot, setDoc, serverTimestamp };
+    } catch (err) {
+      console.error('Firebase init failed:', err);
+      window.__fbError = err.message;
+    }
+  }
+  window.dispatchEvent(new Event('firebase-ready'));
+</script>
 </head>
 <body>
 <div id="root"></div>
@@ -191,18 +226,10 @@ const INITIAL_STATE = () => {
 };
 
 // ============================================================
-// STORAGE (localStorage)
+// STORAGE (Firebase Firestore)
 // ============================================================
-const loadState = () => {
-  try {
-    const raw = localStorage.getItem(STORAGE_KEY);
-    return raw ? JSON.parse(raw) : null;
-  } catch (e) { return null; }
-};
-const saveState = (state) => {
-  try { localStorage.setItem(STORAGE_KEY, JSON.stringify(state)); return true; }
-  catch (e) { console.error(e); return false; }
-};
+const CLIENT_ID = uid('client'); // identificador único deste cliente nesta sessão
+const FB_DOC_PATH = ['kanbans', 'main']; // todo o time aponta pro mesmo documento
 
 // ============================================================
 // ÍCONES (SVG inline)
@@ -569,27 +596,86 @@ function KanbanApp() {
   const [draggingCard, setDraggingCard] = useState(null);
   const [dropTarget, setDropTarget] = useState(null);
   const [search, setSearch] = useState('');
-  const [saveStatus, setSaveStatus] = useState('idle');
+  const [syncStatus, setSyncStatus] = useState('connecting'); // connecting | online | saving | offline | error
+  const [fbState, setFbState] = useState(() => {
+    if (window.__fbNotConfigured) return 'unconfigured';
+    if (window.__fbError) return 'error';
+    if (window.fb) return 'ready';
+    return 'waiting';
+  });
   const saveTimer = useRef(null);
   const fileInputRef = useRef(null);
+  const isApplyingRemote = useRef(false);
 
+  // Espera o script type=module terminar de carregar (caso o React monte antes)
   useEffect(() => {
-    const loaded = loadState();
-    setState(loaded || INITIAL_STATE());
-    setLoading(false);
-  }, []);
+    if (fbState !== 'waiting') return;
+    const check = () => {
+      if (window.__fbNotConfigured) setFbState('unconfigured');
+      else if (window.__fbError) setFbState('error');
+      else if (window.fb) setFbState('ready');
+    };
+    window.addEventListener('firebase-ready', check);
+    check();
+    return () => window.removeEventListener('firebase-ready', check);
+  }, [fbState]);
 
+  // Subscreve em mudanças do documento principal — tempo real
   useEffect(() => {
-    if (!state || loading) return;
-    setSaveStatus('saving');
+    if (fbState !== 'ready') return;
+    const { db, doc, onSnapshot, setDoc, serverTimestamp } = window.fb;
+    const ref = doc(db, FB_DOC_PATH[0], FB_DOC_PATH[1]);
+
+    const unsub = onSnapshot(ref, (snap) => {
+      if (!snap.exists()) {
+        // Primeira vez: cria documento com estado inicial
+        const initial = INITIAL_STATE();
+        setDoc(ref, { ...initial, _lastClient: CLIENT_ID, _updatedAt: serverTimestamp() })
+          .catch(err => console.error('Init doc failed:', err));
+        setState(initial);
+        setLoading(false);
+        setSyncStatus('online');
+        return;
+      }
+      const data = snap.data();
+      const { _lastClient, _updatedAt, ...remoteState } = data;
+      setState(prev => {
+        if (prev && JSON.stringify(prev) === JSON.stringify(remoteState)) return prev;
+        isApplyingRemote.current = true;
+        return remoteState;
+      });
+      setLoading(false);
+      setSyncStatus('online');
+    }, (err) => {
+      console.error('Firebase listen error:', err);
+      setSyncStatus('error');
+      setLoading(false);
+    });
+    return unsub;
+  }, [fbState]);
+
+  // Salva mudanças locais no Firestore (com debounce)
+  useEffect(() => {
+    if (!state || loading || fbState !== 'ready') return;
+    if (isApplyingRemote.current) {
+      isApplyingRemote.current = false;
+      return;
+    }
+    setSyncStatus('saving');
     if (saveTimer.current) clearTimeout(saveTimer.current);
-    saveTimer.current = setTimeout(() => {
-      const ok = saveState(state);
-      setSaveStatus(ok ? 'saved' : 'error');
-      if (ok) setTimeout(() => setSaveStatus('idle'), 1500);
-    }, 300);
+    saveTimer.current = setTimeout(async () => {
+      try {
+        const { db, doc, setDoc, serverTimestamp } = window.fb;
+        const ref = doc(db, FB_DOC_PATH[0], FB_DOC_PATH[1]);
+        await setDoc(ref, { ...state, _lastClient: CLIENT_ID, _updatedAt: serverTimestamp() });
+        setSyncStatus('online');
+      } catch (e) {
+        console.error('Firebase save error:', e);
+        setSyncStatus('error');
+      }
+    }, 500);
     return () => { if (saveTimer.current) clearTimeout(saveTimer.current); };
-  }, [state, loading]);
+  }, [state, loading, fbState]);
 
   const updateBoard = useCallback((boardId, updater) => {
     setState(s => ({ ...s, boards: s.boards.map(b => b.id === boardId ? updater(b) : b) }));
@@ -701,10 +787,54 @@ function KanbanApp() {
     ? activeBoard.columns.find(c => c.id === openCardRef.columnId)?.cards.find(x => x.id === openCardRef.cardId)
     : null;
 
+  if (fbState === 'unconfigured') {
+    return (
+      <div className="flex items-center justify-center" style={{ minHeight: '100vh', padding: 24 }}>
+        <div style={{ maxWidth: 560, width: '100%', background: 'var(--bg-soft)', border: '1px solid var(--border)', borderRadius: 12, padding: 32 }}>
+          <div className="flex items-center gap-3" style={{ marginBottom: 20 }}>
+            <div style={{ width: 64, height: 30, background: '#fff', padding: '4px 6px', borderRadius: 6, display: 'flex' }}>
+              <img src={LOGO_DATA_URI} alt="SESE" style={{ width: '100%', height: '100%', objectFit: 'contain' }} />
+            </div>
+            <span className="font-display" style={{ fontSize: 18, fontWeight: 600 }}>Kanban SESE</span>
+          </div>
+          <h2 className="font-display" style={{ fontSize: 22, fontWeight: 600, marginBottom: 10 }}>Configure o Firebase</h2>
+          <p style={{ fontSize: 14, color: 'var(--text-dim)', lineHeight: 1.6, marginBottom: 20 }}>
+            Pra que todo mundo do time veja o mesmo board em tempo real, esse arquivo precisa estar
+            conectado a um projeto Firebase. Faça o seguinte:
+          </p>
+          <ol style={{ fontSize: 13, color: 'var(--text-dim)', lineHeight: 1.8, paddingLeft: 20, marginBottom: 20 }}>
+            <li>Acesse <a href="https://console.firebase.google.com" target="_blank" style={{ color: 'var(--accent)' }}>console.firebase.google.com</a> e crie (ou abra) um projeto.</li>
+            <li>No menu lateral, <b>Firestore Database</b> → <b>Criar banco de dados</b> → modo de teste → região <b>southamerica-east1</b>.</li>
+            <li>Volte ao painel, clique no ícone <b>&lt;/&gt;</b> pra registrar um app web. Dê um nome qualquer e copie o objeto <code style={{ background: 'var(--surface)', padding: '1px 5px', borderRadius: 3 }}>firebaseConfig</code>.</li>
+            <li>Abra este arquivo (<code style={{ background: 'var(--surface)', padding: '1px 5px', borderRadius: 3 }}>index.html</code>) num editor de texto e cole os valores no bloco marcado lá no topo.</li>
+            <li>Salve, recarregue esta página. Pronto.</li>
+          </ol>
+          <div style={{ padding: 12, background: 'var(--accent-soft)', borderRadius: 6, fontSize: 12, color: 'var(--text-dim)', lineHeight: 1.5 }}>
+            <b style={{ color: 'var(--accent)' }}>Por que isso?</b> Sem essa configuração, o app não tem onde guardar os dados na nuvem.
+            Cada pessoa veria um kanban diferente.
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  if (fbState === 'error') {
+    return (
+      <div className="flex items-center justify-center" style={{ minHeight: '100vh', padding: 24 }}>
+        <div style={{ maxWidth: 480, background: 'var(--bg-soft)', border: '1px solid var(--danger)', borderRadius: 12, padding: 24 }}>
+          <h2 className="font-display" style={{ fontSize: 18, fontWeight: 600, marginBottom: 10, color: 'var(--danger)' }}>Erro ao conectar ao Firebase</h2>
+          <p style={{ fontSize: 13, color: 'var(--text-dim)', marginBottom: 12 }}>{window.__fbError || 'Verifique a configuração no topo do arquivo index.html.'}</p>
+          <p style={{ fontSize: 12, color: 'var(--text-faint)' }}>Abra o console do navegador (F12) pra ver detalhes.</p>
+        </div>
+      </div>
+    );
+  }
+
   if (loading || !state) {
     return (
-      <div className="flex items-center justify-center" style={{ minHeight: '100vh' }}>
+      <div className="flex flex-col items-center justify-center gap-3" style={{ minHeight: '100vh' }}>
         <Loader2 size={24} className="spin" style={{ color: 'var(--accent)' }} />
+        <span style={{ fontSize: 12, color: 'var(--text-faint)' }}>Conectando ao Firebase…</span>
       </div>
     );
   }
@@ -720,7 +850,7 @@ function KanbanApp() {
             </div>
             <div className="flex flex-col" style={{ lineHeight: 1.2 }}>
               <span className="font-display" style={{ fontSize: 16, fontWeight: 600 }}>Kanban SESE</span>
-              <span className="font-mono" style={{ fontSize: 10, textTransform: 'uppercase', letterSpacing: '0.12em', color: 'var(--text-faint)' }}>local · este dispositivo</span>
+              <span className="font-mono" style={{ fontSize: 10, textTransform: 'uppercase', letterSpacing: '0.12em', color: 'var(--text-faint)' }}>tempo real · firebase</span>
             </div>
           </div>
           <div style={{ width: 1, height: 24, background: 'var(--border)' }} />
@@ -744,10 +874,11 @@ function KanbanApp() {
             <Download size={13} /> Exportar
           </button>
 
-          <div className="font-mono flex items-center gap-1" style={{ fontSize: 11, color: 'var(--text-faint)', minWidth: 70 }}>
-            {saveStatus === 'saving' && (<><Loader2 size={11} className="spin" /> salvando</>)}
-            {saveStatus === 'saved' && (<><Check size={11} style={{ color: '#10b981' }} /> salvo</>)}
-            {saveStatus === 'error' && (<><AlertCircle size={11} style={{ color: 'var(--danger)' }} /> erro</>)}
+          <div className="font-mono flex items-center gap-1" style={{ fontSize: 11, color: 'var(--text-faint)', minWidth: 80 }}>
+            {syncStatus === 'saving'     && (<><Loader2 size={11} className="spin" /> sincronizando</>)}
+            {syncStatus === 'online'     && (<><span style={{ width: 7, height: 7, borderRadius: '50%', background: '#10b981', display: 'inline-block' }} /> online</>)}
+            {syncStatus === 'connecting' && (<><Loader2 size={11} className="spin" /> conectando</>)}
+            {syncStatus === 'error'      && (<><AlertCircle size={11} style={{ color: 'var(--danger)' }} /> erro</>)}
           </div>
         </div>
       </header>
