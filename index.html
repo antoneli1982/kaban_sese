@@ -27,10 +27,23 @@
 <link rel="icon" type="image/png" sizes="16x16" href="icon-16.png">
 <link rel="icon" type="image/png" sizes="192x192" href="icon-192.png">
 <link rel="shortcut icon" href="favicon.ico">
+
+<!-- Aplica o tema salvo o mais cedo possível (evita flash da cor errada) -->
+<script>
+  (function () {
+    try {
+      var t = localStorage.getItem('kanban-theme') || 'blue';
+      document.documentElement.setAttribute('data-theme', t);
+      var c = { blue: '#3b5cff', green: '#10b981', black: '#000000' }[t] || '#3b5cff';
+      var m = document.querySelector('meta[name="theme-color"]');
+      if (m) m.setAttribute('content', c);
+    } catch (e) {}
+  })();
+</script>
 <style>
   @import url('https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700;800&display=swap');
 
-  :root {
+  :root, [data-theme="blue"] {
     --bg: #0a0a0b;
     --bg-soft: #111113;
     --surface: #18181b;
@@ -43,7 +56,44 @@
     --accent: #3b5cff;
     --accent-hover: #5b78ff;
     --accent-soft: #1a2240;
+    --accent-text: #ffffff;
     --danger: #e11d48;
+  }
+
+  /* 🟢 Tema Verde */
+  [data-theme="green"] {
+    --bg: #07100b;
+    --bg-soft: #0c1610;
+    --surface: #121e16;
+    --surface-hover: #19281d;
+    --border: #1f3027;
+    --border-soft: #16231b;
+    --text: #f0faf3;
+    --text-dim: #9bb6a5;
+    --text-faint: #688574;
+    --accent: #10b981;
+    --accent-hover: #34d399;
+    --accent-soft: #0c2a1f;
+    --accent-text: #04140c;
+    --danger: #f43f5e;
+  }
+
+  /* ⚫ Tema Preto (monocromático) */
+  [data-theme="black"] {
+    --bg: #000000;
+    --bg-soft: #090909;
+    --surface: #141414;
+    --surface-hover: #1d1d1d;
+    --border: #2a2a2a;
+    --border-soft: #1a1a1a;
+    --text: #fafafa;
+    --text-dim: #a3a3a3;
+    --text-faint: #6e6e6e;
+    --accent: #f4f4f5;
+    --accent-hover: #ffffff;
+    --accent-soft: #1f1f1f;
+    --accent-text: #0a0a0a;
+    --danger: #ef4444;
   }
 
   * { box-sizing: border-box; margin: 0; padding: 0; font-family: inherit; }
@@ -98,7 +148,7 @@
     border: 1px solid transparent; cursor: pointer; transition: all 0.12s;
     font-family: inherit; background: transparent; color: inherit;
   }
-  .btn-primary { background: var(--accent); color: #ffffff; }
+  .btn-primary { background: var(--accent); color: var(--accent-text); }
   .btn-primary:hover { background: var(--accent-hover); }
   .btn-ghost { background: transparent; color: var(--text-dim); }
   .btn-ghost:hover { background: var(--surface); color: var(--text); }
@@ -351,15 +401,25 @@ const BOARD_COLORS = [
   '#06b6d4','#0ea5e9','#3b82f6','#64748b','#71717a','#525252',
 ];
 
+// Temas de cores do layout (trocáveis na hora)
+const THEMES = [
+  { id: 'blue',  name: 'Azul',  swatch: '#3b5cff', dot2: '#0a0a0b' },
+  { id: 'green', name: 'Verde', swatch: '#10b981', dot2: '#07100b' },
+  { id: 'black', name: 'Preto', swatch: '#f4f4f5', dot2: '#000000' },
+];
+const DEFAULT_THEME = 'blue';
+
 const uid = (prefix = 'id') =>
   `${prefix}_${Date.now().toString(36)}_${Math.random().toString(36).slice(2, 8)}`;
 
 const INITIAL_STATE = () => {
   const boardId = uid('b');
   const areaId  = uid('a');
+  const projectId = uid('p');
   return {
     activeBoardId: boardId,
     activeAreaId:  areaId,
+    activeProjectId: projectId,
     departments: DEFAULT_DEPARTMENTS,
     areas: [{
       id: areaId,
@@ -367,8 +427,11 @@ const INITIAL_STATE = () => {
       color: '#3b5cff',
       permissions: { view: 'all', edit: 'all' },
     }],
+    projects: [{
+      id: projectId, name: 'Projeto Exemplo', areaId, color: '#3b5cff', createdAt: Date.now(),
+    }],
     boards: [{
-      id: boardId, name: 'Projeto Exemplo', areaId, color: '#3b5cff', createdAt: Date.now(),
+      id: boardId, name: 'Quadro principal', areaId, projectId, color: '#3b5cff', createdAt: Date.now(),
       columns: [
         { id: uid('c'), name: 'Backlog', cards: [
           { id: uid('card'), title: 'Definir escopo do MVP', description: 'Listar funcionalidades essenciais.', labels: ['emerald'], priority: 'high', dueDate: '', assignee: 'Você', createdAt: Date.now() },
@@ -407,6 +470,7 @@ const Trash2  = (p) => <Svg {...p}><polyline points="3 6 5 6 21 6"/><path d="M19
 const Calendar= (p) => <Svg {...p}><rect x="3" y="4" width="18" height="18" rx="2" ry="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></Svg>;
 const Edit3   = (p) => <Svg {...p}><path d="M12 20h9"/><path d="M16.5 3.5a2.121 2.121 0 0 1 3 3L7 19l-4 1 1-4L16.5 3.5z"/></Svg>;
 const ChevronDown = (p) => <Svg {...p}><polyline points="6 9 12 15 18 9"/></Svg>;
+const ChevronRight = (p) => <Svg {...p}><polyline points="9 18 15 12 9 6"/></Svg>;
 const Check   = (p) => <Svg {...p}><polyline points="20 6 9 17 4 12"/></Svg>;
 const Layers  = (p) => <Svg {...p}><polygon points="12 2 2 7 12 12 22 7 12 2"/><polyline points="2 17 12 22 22 17"/><polyline points="2 12 12 17 22 12"/></Svg>;
 const MoreHorizontal = (p) => <Svg {...p}><circle cx="12" cy="12" r="1"/><circle cx="19" cy="12" r="1"/><circle cx="5" cy="12" r="1"/></Svg>;
@@ -425,6 +489,7 @@ const BarChart2=(p)=> <Svg {...p}><line x1="18" y1="20" x2="18" y2="10"/><line x
 const TrendUp = (p)=> <Svg {...p}><polyline points="23 6 13.5 15.5 8.5 10.5 1 18"/><polyline points="17 6 23 6 23 12"/></Svg>;
 const Menu     = (p) => <Svg {...p}><line x1="3" y1="6" x2="21" y2="6"/><line x1="3" y1="12" x2="21" y2="12"/><line x1="3" y1="18" x2="21" y2="18"/></Svg>;
 const Smartphone = (p) => <Svg {...p}><rect x="5" y="2" width="14" height="20" rx="2" ry="2"/><line x1="12" y1="18" x2="12.01" y2="18"/></Svg>;
+const Palette = (p) => <Svg {...p}><circle cx="13.5" cy="6.5" r=".5" fill="currentColor"/><circle cx="17.5" cy="10.5" r=".5" fill="currentColor"/><circle cx="8.5" cy="7.5" r=".5" fill="currentColor"/><circle cx="6.5" cy="12.5" r=".5" fill="currentColor"/><path d="M12 2C6.5 2 2 6.5 2 12s4.5 10 10 10c.926 0 1.648-.746 1.648-1.688 0-.437-.18-.835-.437-1.125-.29-.289-.438-.652-.438-1.125a1.64 1.64 0 0 1 1.668-1.668h1.996c3.051 0 5.555-2.503 5.555-5.554C21.965 6.012 17.461 2 12 2z"/></Svg>;
 
 // ============================================================
 // HELPERS
@@ -835,7 +900,7 @@ function AreaSettingsModal({ area, departments, onSave, onClose, onDelete, canDe
             return (
               <button key={d.id} onClick={() => toggleDept(setDepts, depts, d.id)}
                 className={`dept-chip ${active ? 'active' : ''}`}
-                style={active ? { background: accentColor, color: '#fff', borderColor: accentColor } : {}}>
+                style={active ? { background: accentColor, color: 'var(--accent-text)', borderColor: accentColor } : {}}>
                 {d.name}
               </button>
             );
@@ -943,6 +1008,50 @@ function AreaSettingsModal({ area, departments, onSave, onClose, onDelete, canDe
 }
 
 // ============================================================
+// THEME SWITCHER — troca a cor do layout (azul / verde / preto)
+// ============================================================
+function ThemeSwitcher({ theme, onChange, compact }) {
+  const [open, setOpen] = useState(false);
+  const current = THEMES.find(t => t.id === theme) || THEMES[0];
+
+  return (
+    <div className="relative">
+      <button onClick={() => setOpen(!open)} className="btn btn-outline"
+        style={{ padding: compact ? 8 : '7px 12px' }}
+        title="Cor do layout">
+        <span style={{ position: 'relative', width: 14, height: 14, flexShrink: 0 }}>
+          <span style={{ position: 'absolute', inset: 0, borderRadius: '50%', background: current.swatch }} />
+        </span>
+        {!compact && <span style={{ fontSize: 13 }}>{current.name}</span>}
+        <ChevronDown size={13} style={{ opacity: 0.6 }} />
+      </button>
+      {open && (
+        <>
+          <div className="fixed inset-0 z-10" onClick={() => setOpen(false)} />
+          <div className="absolute fade-in" style={{ right: 0, top: 44, zIndex: 20, background: 'var(--surface)', border: '1px solid var(--border)', minWidth: 180, borderRadius: 8, padding: '6px 0', boxShadow: '0 20px 50px rgba(0,0,0,0.5)' }}>
+            <div style={{ padding: '4px 12px 6px', fontSize: 10, textTransform: 'uppercase', letterSpacing: '0.08em', fontWeight: 500, color: 'var(--text-faint)' }}>Cor do layout</div>
+            {THEMES.map(t => {
+              const isActive = t.id === theme;
+              return (
+                <button key={t.id} onClick={() => { onChange(t.id); setOpen(false); }}
+                  className="hover-bg" style={{ width: '100%', textAlign: 'left', padding: '8px 12px', fontSize: 13, background: 'none', border: 'none', cursor: 'pointer', color: isActive ? 'var(--text)' : 'var(--text-dim)', display: 'flex', alignItems: 'center', gap: 10 }}>
+                  <span style={{ display: 'inline-flex', borderRadius: '50%', overflow: 'hidden', width: 16, height: 16, flexShrink: 0, border: '1px solid var(--border)' }}>
+                    <span style={{ width: '50%', background: t.swatch }} />
+                    <span style={{ width: '50%', background: t.dot2 }} />
+                  </span>
+                  <span className="flex-1">{t.name}</span>
+                  {isActive && <Check size={13} style={{ color: t.swatch }} />}
+                </button>
+              );
+            })}
+          </div>
+        </>
+      )}
+    </div>
+  );
+}
+
+// ============================================================
 // AREA SWITCHER
 // ============================================================
 function AreaSwitcher({ areas, activeAreaId, onSelect, onCreate, onEditArea }) {
@@ -1001,6 +1110,157 @@ function AreaSwitcher({ areas, activeAreaId, onSelect, onCreate, onEditArea }) {
           </div>
         </>
       )}
+    </div>
+  );
+}
+
+// ============================================================
+// PROJECT SWITCHER (filtrado por área)
+// ============================================================
+function ProjectSwitcher({ projects, activeProjectId, activeAreaId, onSelect, onCreate, onEditProject }) {
+  const [open, setOpen] = useState(false);
+  const [creating, setCreating] = useState(false);
+  const [newName, setNewName] = useState('');
+  const areaProjects = projects.filter(p => p.areaId === activeAreaId);
+  const active = areaProjects.find(p => p.id === activeProjectId);
+  const activeColor = active?.color || '#8b5cf6';
+
+  const submit = () => {
+    const n = newName.trim();
+    if (n) { onCreate(n); setNewName(''); setCreating(false); setOpen(false); }
+  };
+
+  return (
+    <div className="relative">
+      <button onClick={() => setOpen(!open)} className="btn btn-outline" style={{ padding: '7px 14px' }}>
+        {active && <span style={{ width: 8, height: 8, borderRadius: '50%', background: activeColor, flexShrink: 0 }} />}
+        <FolderIcon size={14} />
+        <span className="truncate" style={{ maxWidth: 150 }}>{active?.name || 'Sem projeto'}</span>
+        <ChevronDown size={14} style={{ opacity: 0.6 }} />
+      </button>
+      {open && (
+        <>
+          <div className="fixed inset-0 z-10" onClick={() => { setOpen(false); setCreating(false); }} />
+          <div className="absolute fade-in" style={{ left: 0, top: 44, zIndex: 20, background: 'var(--surface)', border: '1px solid var(--border)', minWidth: 280, borderRadius: 8, padding: '6px 0', boxShadow: '0 20px 50px rgba(0,0,0,0.5)' }}>
+            <div style={{ padding: '4px 12px 6px', fontSize: 10, textTransform: 'uppercase', letterSpacing: '0.08em', fontWeight: 500, color: 'var(--text-faint)' }}>Projetos desta área</div>
+            {areaProjects.length === 0 && (
+              <div style={{ padding: '8px 12px', fontSize: 12, color: 'var(--text-faint)' }}>Nenhum projeto nesta área ainda.</div>
+            )}
+            {areaProjects.map(p => {
+              const c = p.color || '#8b5cf6';
+              const isActive = p.id === activeProjectId;
+              return (
+                <div key={p.id} className="flex items-center hover-row">
+                  <button onClick={() => { onSelect(p.id); setOpen(false); }}
+                    className="flex-1 hover-bg"
+                    style={{ textAlign: 'left', padding: '7px 12px', fontSize: 13, background: 'none', border: 'none', cursor: 'pointer', color: isActive ? 'var(--text)' : 'var(--text-dim)', display: 'flex', alignItems: 'center', gap: 8 }}>
+                    <span style={{ width: 10, height: 10, borderRadius: '50%', background: c, flexShrink: 0, boxShadow: isActive ? `0 0 0 2px ${c}33` : 'none' }} />
+                    <span className="truncate flex-1">{p.name}</span>
+                    {isActive && <Check size={12} style={{ color: c }} />}
+                  </button>
+                  <button onClick={(e) => { e.stopPropagation(); onEditProject(p); setOpen(false); }}
+                    className="row-action btn btn-ghost" style={{ padding: '4px 8px' }}
+                    title="Configurar projeto (nome e cor)">
+                    <Settings size={12} />
+                  </button>
+                </div>
+              );
+            })}
+            <div style={{ height: 1, background: 'var(--border-soft)', margin: '4px 0' }} />
+            {creating ? (
+              <div className="flex items-center gap-1" style={{ padding: '6px 8px' }}>
+                <input autoFocus className="kbn" style={{ padding: '4px 8px', fontSize: 13 }}
+                  placeholder="Nome do projeto…" value={newName} onChange={e => setNewName(e.target.value)}
+                  onKeyDown={e => { if (e.key === 'Enter') submit(); if (e.key === 'Escape') { setCreating(false); setNewName(''); } }} />
+                <button className="btn btn-primary" style={{ padding: 6 }} onClick={submit}><Check size={12} /></button>
+              </div>
+            ) : (
+              <button onClick={() => setCreating(true)} className="hover-bg"
+                style={{ width: '100%', textAlign: 'left', padding: '6px 12px', fontSize: 13, background: 'none', border: 'none', cursor: 'pointer', color: 'var(--text)', display: 'flex', alignItems: 'center', gap: 8 }}>
+                <Plus size={12} /> Novo projeto
+              </button>
+            )}
+          </div>
+        </>
+      )}
+    </div>
+  );
+}
+
+// ============================================================
+// PROJECT SETTINGS MODAL — nome + cor do projeto
+// ============================================================
+function ProjectSettingsModal({ project, boardCount, onSave, onClose, onDelete, canDelete }) {
+  const [name, setName] = useState(project.name);
+  const [color, setColor] = useState(project.color || '#8b5cf6');
+
+  const handleSave = () => {
+    if (!name.trim()) return;
+    onSave({ ...project, name: name.trim(), color });
+  };
+
+  return (
+    <div className="fixed inset-0 z-50 flex items-center justify-center"
+         style={{ padding: 16, background: 'rgba(0,0,0,0.75)', backdropFilter: 'blur(4px)' }}
+         onClick={onClose}>
+      <div className="kbn-modal modal-in flex flex-col"
+           style={{ background: 'var(--bg-soft)', border: '1px solid var(--border)', width: '100%', maxWidth: 480, maxHeight: '90vh', borderRadius: 14, boxShadow: '0 24px 64px rgba(0,0,0,0.6)' }}
+           onClick={e => e.stopPropagation()}>
+
+        <div className="flex items-center justify-between" style={{ padding: '18px 20px 14px', borderBottom: '1px solid var(--border-soft)' }}>
+          <div className="flex items-center gap-2">
+            <span style={{ width: 12, height: 12, borderRadius: '50%', background: color, transition: 'background 0.2s' }} />
+            <span className="font-display" style={{ fontSize: 16, fontWeight: 600 }}>Configurar projeto</span>
+          </div>
+          <button onClick={onClose} className="btn btn-ghost" style={{ padding: 6 }}><X size={16} /></button>
+        </div>
+
+        <div className="modal-padding overflow-y-auto scrollbar-thin flex flex-col gap-5" style={{ padding: 20 }}>
+          <div>
+            <label style={{ fontSize: 11, textTransform: 'uppercase', letterSpacing: '0.08em', fontWeight: 600, display: 'block', marginBottom: 8, color: 'var(--text-faint)' }}>Nome do projeto</label>
+            <input className="kbn" value={name} onChange={e => setName(e.target.value)}
+              placeholder="Ex: App Mobile, Migração ERP, Campanha 2026…"
+              onKeyDown={e => { if (e.key === 'Enter' && name.trim()) handleSave(); }} />
+          </div>
+
+          <div>
+            <label style={{ fontSize: 11, textTransform: 'uppercase', letterSpacing: '0.08em', fontWeight: 600, display: 'block', marginBottom: 10, color: 'var(--text-faint)' }}>Cor do projeto</label>
+            <div className="flex flex-wrap" style={{ gap: 10 }}>
+              {BOARD_COLORS.map(c => (
+                <button key={c} onClick={() => setColor(c)}
+                  aria-label={`Cor ${c}`}
+                  style={{
+                    width: 34, height: 34, borderRadius: '50%', background: c,
+                    border: color === c ? '3px solid #fff' : '3px solid transparent',
+                    cursor: 'pointer',
+                    outline: color === c ? `3px solid ${c}` : 'none',
+                    boxShadow: color === c ? `0 0 0 1px ${c}` : 'none',
+                    transition: 'all 0.12s'
+                  }} />
+              ))}
+            </div>
+            <div style={{ fontSize: 11, color: 'var(--text-faint)', marginTop: 10, lineHeight: 1.5 }}>
+              Um projeto agrupa vários kanbans (boards) dentro da mesma área. {boardCount > 0 ? `Este projeto tem ${boardCount} ${boardCount === 1 ? 'quadro' : 'quadros'}.` : ''}
+            </div>
+          </div>
+        </div>
+
+        <div className="flex items-center justify-between" style={{ padding: '12px 20px', borderTop: '1px solid var(--border-soft)' }}>
+          {canDelete ? (
+            <button className="btn btn-danger" onClick={() => { if (confirm(`Excluir o projeto "${project.name}" e TODOS os ${boardCount} quadros dentro dele?`)) { onDelete(project.id); onClose(); } }}>
+              <Trash2 size={13} /> Excluir projeto
+            </button>
+          ) : <div />}
+          <div className="flex gap-2">
+            <button className="btn btn-ghost" onClick={onClose}>Cancelar</button>
+            <button className="btn btn-primary" onClick={() => { handleSave(); onClose(); }}
+              style={{ background: color }}
+              disabled={!name.trim()}>
+              <Check size={13} /> Salvar
+            </button>
+          </div>
+        </div>
+      </div>
     </div>
   );
 }
@@ -1089,12 +1349,12 @@ function BoardSettingsModal({ board, onSave, onClose, onDelete, canDelete }) {
 // ============================================================
 // BOARD SWITCHER (filtrado por área)
 // ============================================================
-function BoardSwitcher({ boards, activeBoardId, activeAreaId, onSelect, onCreate, onDelete, onEditBoard }) {
+function BoardSwitcher({ boards, activeBoardId, activeProjectId, onSelect, onCreate, onDelete, onEditBoard }) {
   const [open, setOpen] = useState(false);
   const [creating, setCreating] = useState(false);
   const [newName, setNewName] = useState('');
-  const areaBoards = boards.filter(b => b.areaId === activeAreaId);
-  const active = areaBoards.find(b => b.id === activeBoardId);
+  const projectBoards = boards.filter(b => b.projectId === activeProjectId);
+  const active = projectBoards.find(b => b.id === activeBoardId);
   const activeColor = active?.color || '#3b5cff';
 
   const submit = () => {
@@ -1107,18 +1367,18 @@ function BoardSwitcher({ boards, activeBoardId, activeAreaId, onSelect, onCreate
       <button onClick={() => setOpen(!open)} className="btn btn-outline" style={{ padding: '7px 14px' }}>
         {active && <span style={{ width: 8, height: 8, borderRadius: '50%', background: activeColor, flexShrink: 0 }} />}
         <Layers size={14} />
-        <span className="truncate" style={{ maxWidth: 160 }}>{active?.name || 'Sem board'}</span>
+        <span className="truncate" style={{ maxWidth: 160 }}>{active?.name || 'Sem quadro'}</span>
         <ChevronDown size={14} style={{ opacity: 0.6 }} />
       </button>
       {open && (
         <>
           <div className="fixed inset-0 z-10" onClick={() => { setOpen(false); setCreating(false); }} />
           <div className="absolute fade-in" style={{ left: 0, top: 44, zIndex: 20, background: 'var(--surface)', border: '1px solid var(--border)', minWidth: 280, borderRadius: 8, padding: '6px 0', boxShadow: '0 20px 50px rgba(0,0,0,0.5)' }}>
-            <div style={{ padding: '4px 12px 6px', fontSize: 10, textTransform: 'uppercase', letterSpacing: '0.08em', fontWeight: 500, color: 'var(--text-faint)' }}>Boards desta área</div>
-            {areaBoards.length === 0 && (
-              <div style={{ padding: '8px 12px', fontSize: 12, color: 'var(--text-faint)' }}>Nenhum board nesta área ainda.</div>
+            <div style={{ padding: '4px 12px 6px', fontSize: 10, textTransform: 'uppercase', letterSpacing: '0.08em', fontWeight: 500, color: 'var(--text-faint)' }}>Quadros deste projeto</div>
+            {projectBoards.length === 0 && (
+              <div style={{ padding: '8px 12px', fontSize: 12, color: 'var(--text-faint)' }}>Nenhum quadro neste projeto ainda.</div>
             )}
-            {areaBoards.map(b => {
+            {projectBoards.map(b => {
               const c = b.color || '#3b5cff';
               const isActive = b.id === activeBoardId;
               return (
@@ -1142,14 +1402,14 @@ function BoardSwitcher({ boards, activeBoardId, activeAreaId, onSelect, onCreate
             {creating ? (
               <div className="flex items-center gap-1" style={{ padding: '6px 8px' }}>
                 <input autoFocus className="kbn" style={{ padding: '4px 8px', fontSize: 13 }}
-                  placeholder="Nome do board…" value={newName} onChange={e => setNewName(e.target.value)}
+                  placeholder="Nome do quadro…" value={newName} onChange={e => setNewName(e.target.value)}
                   onKeyDown={e => { if (e.key === 'Enter') submit(); if (e.key === 'Escape') { setCreating(false); setNewName(''); } }} />
                 <button className="btn btn-primary" style={{ padding: 6 }} onClick={submit}><Check size={12} /></button>
               </div>
             ) : (
               <button onClick={() => setCreating(true)} className="hover-bg"
                 style={{ width: '100%', textAlign: 'left', padding: '6px 12px', fontSize: 13, background: 'none', border: 'none', cursor: 'pointer', color: 'var(--text)', display: 'flex', alignItems: 'center', gap: 8 }}>
-                <Plus size={12} /> Novo board
+                <Plus size={12} /> Novo quadro
               </button>
             )}
           </div>
@@ -1162,12 +1422,13 @@ function BoardSwitcher({ boards, activeBoardId, activeAreaId, onSelect, onCreate
 // ============================================================
 // DASHBOARD
 // ============================================================
-function Dashboard({ boards, areas, activeAreaId, activeBoardId }) {
-  const [scope, setScope] = useState('board'); // 'board' | 'area' | 'all'
+function Dashboard({ boards, areas, projects, activeAreaId, activeProjectId, activeBoardId }) {
+  const [scope, setScope] = useState('board'); // 'board' | 'project' | 'area' | 'all'
 
   const allCards = (() => {
     let src = boards;
     if (scope === 'board') src = boards.filter(b => b.id === activeBoardId);
+    else if (scope === 'project') src = boards.filter(b => b.projectId === activeProjectId);
     else if (scope === 'area') src = boards.filter(b => b.areaId === activeAreaId);
     return src.flatMap(b => b.columns.flatMap(c => c.cards.map(card => ({ ...card, _col: c.name, _board: b.name, _area: areas.find(a => a.id === b.areaId)?.name }))));
   })();
@@ -1193,6 +1454,15 @@ function Dashboard({ boards, areas, activeAreaId, activeBoardId }) {
     key: k, label: v.label, dot: v.dot, count: allCards.filter(c => (c.priority || 'low') === k).length,
   }));
 
+  // Project breakdown (projetos da área ativa)
+  const areaProjects = (projects || []).filter(p => p.areaId === activeAreaId);
+  const projectDist = areaProjects.map(p => {
+    const pCards = boards.filter(b => b.projectId === p.id).flatMap(b => b.columns.flatMap(c => c.cards));
+    const avgP = pCards.length > 0 ? Math.round(pCards.reduce((s, c) => s + (c.progress ?? 0), 0) / pCards.length) : 0;
+    const boardCount = boards.filter(b => b.projectId === p.id).length;
+    return { ...p, count: pCards.length, avgProgress: avgP, boardCount };
+  });
+
   // Area breakdown
   const areaDist = areas.map(a => {
     const aCards = boards.filter(b => b.areaId === a.id).flatMap(b => b.columns.flatMap(c => c.cards));
@@ -1212,6 +1482,7 @@ function Dashboard({ boards, areas, activeAreaId, activeBoardId }) {
   );
 
   const activeArea = areas.find(a => a.id === activeAreaId);
+  const activeProject = (projects || []).find(p => p.id === activeProjectId);
 
   return (
     <div className="fade-in" style={{ maxWidth: 1200 }}>
@@ -1219,18 +1490,25 @@ function Dashboard({ boards, areas, activeAreaId, activeBoardId }) {
       <div className="flex items-center justify-between flex-wrap" style={{ marginBottom: 20, gap: 12 }}>
         <div>
           <h1 className="dash-title font-display" style={{ fontSize: 26, fontWeight: 700, letterSpacing: '-0.02em' }}>Dashboard</h1>
-          <div className="flex items-center gap-1" style={{ marginTop: 3 }}>
+          <div className="flex items-center gap-1 flex-wrap" style={{ marginTop: 3 }}>
             <span style={{ width: 6, height: 6, borderRadius: '50%', background: activeArea?.color || 'var(--accent)' }} />
             <span style={{ fontSize: 11, color: 'var(--text-faint)' }}>{activeArea?.name}</span>
+            {activeProject && (
+              <>
+                <ChevronRight size={11} style={{ color: 'var(--text-faint)', opacity: 0.5 }} />
+                <span style={{ width: 6, height: 6, borderRadius: '50%', background: activeProject.color || '#8b5cf6' }} />
+                <span style={{ fontSize: 11, color: 'var(--text-faint)' }}>{activeProject.name}</span>
+              </>
+            )}
           </div>
         </div>
         {/* Scope selector */}
         <div className="dash-scope-btns flex gap-2">
-          {[['board','Este board'],['area','Esta área'],['all','Todos']].map(([s, lbl]) => (
+          {[['board','Este quadro'],['project','Este projeto'],['area','Esta área'],['all','Todos']].map(([s, lbl]) => (
             <button key={s} onClick={() => setScope(s)}
               style={{ padding: '6px 14px', borderRadius: 20, fontSize: 12, fontWeight: 500, cursor: 'pointer',
                 background: scope === s ? 'var(--accent)' : 'transparent',
-                color: scope === s ? '#fff' : 'var(--text-dim)',
+                color: scope === s ? 'var(--accent-text)' : 'var(--text-dim)',
                 border: `1px solid ${scope === s ? 'var(--accent)' : 'var(--border)'}`, transition: 'all 0.12s' }}>
               {lbl}
             </button>
@@ -1344,6 +1622,33 @@ function Dashboard({ boards, areas, activeAreaId, activeBoardId }) {
           ))}
         </div>
       </div>
+
+      {/* Progresso por Projeto (área ativa) */}
+      {projectDist.length > 0 && (
+        <div style={{ background: 'var(--surface)', border: '1px solid var(--border)', borderRadius: 12, padding: '18px 20px', marginTop: 16 }}>
+          <div className="flex items-center gap-2" style={{ marginBottom: 16 }}>
+            <FolderIcon size={14} style={{ color: 'var(--text-faint)' }} />
+            <span style={{ fontSize: 13, fontWeight: 600, color: 'var(--text)' }}>Progresso por Projeto</span>
+            <span style={{ fontSize: 11, color: 'var(--text-faint)' }}>· {activeArea?.name}</span>
+          </div>
+          {projectDist.map(p => (
+            <div key={p.id} style={{ marginBottom: 14 }}>
+              <div className="flex items-center justify-between" style={{ marginBottom: 5 }}>
+                <div className="flex items-center gap-2">
+                  <span style={{ width: 8, height: 8, borderRadius: '50%', background: p.color || '#8b5cf6' }} />
+                  <span style={{ fontSize: 12, fontWeight: 500, color: 'var(--text-dim)' }}>{p.name}</span>
+                  <span style={{ fontSize: 10, color: 'var(--text-faint)' }}>· {p.boardCount} {p.boardCount === 1 ? 'quadro' : 'quadros'}</span>
+                </div>
+                <span style={{ fontSize: 12, color: p.color || '#8b5cf6', fontWeight: 600 }}>{p.avgProgress}%</span>
+              </div>
+              <div style={{ height: 8, borderRadius: 8, background: 'var(--border)', overflow: 'hidden' }}>
+                <div style={{ height: '100%', width: `${p.avgProgress}%`, background: p.color || '#8b5cf6', borderRadius: 8, transition: 'width 0.4s ease' }} />
+              </div>
+              <div style={{ fontSize: 10, color: 'var(--text-faint)', marginTop: 3 }}>{p.count} card{p.count !== 1 ? 's' : ''}</div>
+            </div>
+          ))}
+        </div>
+      )}
     </div>
   );
 }
@@ -1360,10 +1665,15 @@ function KanbanApp() {
   const [search, setSearch] = useState('');
   const [syncStatus, setSyncStatus] = useState('connecting');
   const [editingArea, setEditingArea] = useState(null);
+  const [editingProject, setEditingProject] = useState(null);
   const [editingBoard, setEditingBoard] = useState(null);
   const [showDash, setShowDash] = useState(false);
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [canInstall, setCanInstall] = useState(!!window.__canInstallApp);
+  const [theme, setTheme] = useState(() => {
+    try { return localStorage.getItem('kanban-theme') || DEFAULT_THEME; }
+    catch { return DEFAULT_THEME; }
+  });
   const [fbState, setFbState] = useState(() => {
     if (window.__fbNotConfigured) return 'unconfigured';
     if (window.__fbError) return 'error';
@@ -1380,6 +1690,16 @@ function KanbanApp() {
     window.addEventListener('pwa-installable', onInstallable);
     return () => window.removeEventListener('pwa-installable', onInstallable);
   }, []);
+
+  // Tema: aplica no <html> e salva a preferência (por dispositivo)
+  useEffect(() => {
+    document.documentElement.setAttribute('data-theme', theme);
+    // atualiza a cor da barra do navegador / status bar do PWA
+    const meta = document.querySelector('meta[name="theme-color"]');
+    const themeColor = { blue: '#3b5cff', green: '#10b981', black: '#000000' }[theme] || '#3b5cff';
+    if (meta) meta.setAttribute('content', themeColor);
+    try { localStorage.setItem('kanban-theme', theme); } catch {}
+  }, [theme]);
 
   // Fecha drawer ao mudar para desktop
   useEffect(() => {
@@ -1429,6 +1749,40 @@ function KanbanApp() {
         const fallback = area?.color || BOARD_COLORS[i % BOARD_COLORS.length];
         return { ...b, color: fallback };
       });
+      // Migrate: garantir que existem PROJETOS (Área › Projeto › Board)
+      if (!remoteState.projects || remoteState.projects.length === 0) {
+        const projects = [];
+        const areaToProject = {};
+        (remoteState.areas || []).forEach(area => {
+          const proj = { id: uid('p'), name: 'Projeto principal', areaId: area.id, color: area.color || '#8b5cf6', createdAt: Date.now() };
+          projects.push(proj);
+          areaToProject[area.id] = proj.id;
+        });
+        // Atribui cada board existente ao projeto da sua área
+        remoteState.boards = (remoteState.boards || []).map(b => ({ ...b, projectId: b.projectId || areaToProject[b.areaId] }));
+        remoteState.projects = projects;
+        remoteState.activeProjectId = areaToProject[remoteState.activeAreaId] || projects[0]?.id;
+      } else {
+        // Garante que todo board tem projectId válido
+        const validProjIds = new Set(remoteState.projects.map(p => p.id));
+        const areaToProject = {};
+        remoteState.projects.forEach(p => { if (!areaToProject[p.areaId]) areaToProject[p.areaId] = p.id; });
+        remoteState.boards = (remoteState.boards || []).map(b => {
+          if (b.projectId && validProjIds.has(b.projectId)) return b;
+          return { ...b, projectId: areaToProject[b.areaId] || remoteState.projects[0]?.id };
+        });
+        if (!remoteState.activeProjectId || !validProjIds.has(remoteState.activeProjectId)) {
+          remoteState.activeProjectId = areaToProject[remoteState.activeAreaId] || remoteState.projects[0]?.id;
+        }
+      }
+      // Garante board ativo coerente com projeto ativo
+      if (remoteState.activeProjectId) {
+        const boardInProj = (remoteState.boards || []).find(b => b.id === remoteState.activeBoardId && b.projectId === remoteState.activeProjectId);
+        if (!boardInProj) {
+          const first = (remoteState.boards || []).find(b => b.projectId === remoteState.activeProjectId);
+          if (first) remoteState.activeBoardId = first.id;
+        }
+      }
       setState(prev => {
         if (prev && JSON.stringify(prev) === JSON.stringify(remoteState)) return prev;
         isApplyingRemote.current = true;
@@ -1460,42 +1814,103 @@ function KanbanApp() {
   }, []);
 
   const activeArea  = state?.areas.find(a => a.id === state.activeAreaId);
+  const activeProject = (state?.projects || []).find(p => p.id === state.activeProjectId);
   const activeBoard = state?.boards.find(b => b.id === state.activeBoardId);
 
   // ---- Area management ----
   const createArea = (name) => {
-    const newArea = { id: uid('a'), name, color: AREA_COLORS[Math.floor(Math.random() * AREA_COLORS.length)], permissions: { view: 'all', edit: 'all' } };
-    const newBoard = { id: uid('b'), name: 'Board principal', areaId: newArea.id, color: newArea.color, createdAt: Date.now(), columns: [
+    const color = AREA_COLORS[Math.floor(Math.random() * AREA_COLORS.length)];
+    const newArea = { id: uid('a'), name, color, permissions: { view: 'all', edit: 'all' } };
+    const newProject = { id: uid('p'), name: 'Projeto principal', areaId: newArea.id, color, createdAt: Date.now() };
+    const newBoard = { id: uid('b'), name: 'Quadro principal', areaId: newArea.id, projectId: newProject.id, color, createdAt: Date.now(), columns: [
       { id: uid('c'), name: 'A fazer',        cards: [] },
       { id: uid('c'), name: 'Em andamento',   cards: [] },
       { id: uid('c'), name: 'Concluído',      cards: [] },
     ]};
-    setState(s => ({ ...s, areas: [...s.areas, newArea], boards: [...s.boards, newBoard], activeBoardId: newBoard.id, activeAreaId: newArea.id }));
+    setState(s => ({ ...s,
+      areas: [...s.areas, newArea],
+      projects: [...(s.projects || []), newProject],
+      boards: [...s.boards, newBoard],
+      activeAreaId: newArea.id, activeProjectId: newProject.id, activeBoardId: newBoard.id }));
   };
   const saveArea = (updatedArea) => {
     setState(s => ({ ...s, areas: s.areas.map(a => a.id === updatedArea.id ? updatedArea : a) }));
   };
   const deleteArea = (areaId) => {
     setState(s => {
-      const remainingAreas  = s.areas.filter(a => a.id !== areaId);
-      const remainingBoards = s.boards.filter(b => b.areaId !== areaId);
+      const remainingAreas    = s.areas.filter(a => a.id !== areaId);
+      const remainingProjects = (s.projects || []).filter(p => p.areaId !== areaId);
+      const remainingBoards   = s.boards.filter(b => b.areaId !== areaId);
       if (remainingAreas.length === 0) return INITIAL_STATE();
-      const newActiveArea  = remainingAreas[0];
-      const newActiveBoard = remainingBoards.find(b => b.areaId === newActiveArea.id) || remainingBoards[0];
-      return { ...s, areas: remainingAreas, boards: remainingBoards, activeAreaId: newActiveArea.id, activeBoardId: newActiveBoard?.id };
+      const newActiveArea    = remainingAreas[0];
+      const newActiveProject = remainingProjects.find(p => p.areaId === newActiveArea.id) || remainingProjects[0];
+      const newActiveBoard   = remainingBoards.find(b => b.projectId === newActiveProject?.id) || remainingBoards.find(b => b.areaId === newActiveArea.id) || remainingBoards[0];
+      return { ...s, areas: remainingAreas, projects: remainingProjects, boards: remainingBoards,
+        activeAreaId: newActiveArea.id, activeProjectId: newActiveProject?.id, activeBoardId: newActiveBoard?.id };
     });
   };
   const selectArea = (areaId) => {
     setState(s => {
-      const firstBoard = s.boards.find(b => b.areaId === areaId);
-      return { ...s, activeAreaId: areaId, activeBoardId: firstBoard?.id || s.activeBoardId };
+      const firstProject = (s.projects || []).find(p => p.areaId === areaId);
+      const firstBoard = s.boards.find(b => b.projectId === firstProject?.id) || s.boards.find(b => b.areaId === areaId);
+      return { ...s, activeAreaId: areaId, activeProjectId: firstProject?.id || s.activeProjectId, activeBoardId: firstBoard?.id || s.activeBoardId };
+    });
+  };
+
+  // ---- Project management ----
+  const createProject = (name) => {
+    const color = BOARD_COLORS[Math.floor(Math.random() * BOARD_COLORS.length)];
+    const newProject = { id: uid('p'), name, areaId: state.activeAreaId, color, createdAt: Date.now() };
+    const newBoard = { id: uid('b'), name: 'Quadro principal', areaId: state.activeAreaId, projectId: newProject.id, color, createdAt: Date.now(),
+      columns: [
+        { id: uid('c'), name: 'A fazer', cards: [] },
+        { id: uid('c'), name: 'Em andamento', cards: [] },
+        { id: uid('c'), name: 'Concluído', cards: [] },
+      ]};
+    setState(s => ({ ...s,
+      projects: [...(s.projects || []), newProject],
+      boards: [...s.boards, newBoard],
+      activeProjectId: newProject.id, activeBoardId: newBoard.id }));
+  };
+  const saveProject = (updatedProject) => {
+    setState(s => ({ ...s, projects: (s.projects || []).map(p => p.id === updatedProject.id ? { ...p, ...updatedProject } : p) }));
+  };
+  const deleteProject = (projectId) => {
+    setState(s => {
+      const proj = (s.projects || []).find(p => p.id === projectId);
+      const areaId = proj?.areaId || s.activeAreaId;
+      const remainingProjects = (s.projects || []).filter(p => p.id !== projectId);
+      const remainingBoards   = s.boards.filter(b => b.projectId !== projectId);
+      // se a área ficou sem projetos, recria um projeto vazio
+      const areaProjects = remainingProjects.filter(p => p.areaId === areaId);
+      let projects = remainingProjects, boards = remainingBoards, newProjId, newBoardId;
+      if (areaProjects.length === 0) {
+        const color = AREA_COLORS[0];
+        const np = { id: uid('p'), name: 'Projeto principal', areaId, color, createdAt: Date.now() };
+        const nb = { id: uid('b'), name: 'Quadro principal', areaId, projectId: np.id, color, createdAt: Date.now(), columns: [
+          { id: uid('c'), name: 'A fazer', cards: [] }, { id: uid('c'), name: 'Em andamento', cards: [] }, { id: uid('c'), name: 'Concluído', cards: [] },
+        ]};
+        projects = [...remainingProjects, np];
+        boards = [...remainingBoards, nb];
+        newProjId = np.id; newBoardId = nb.id;
+      } else {
+        newProjId = areaProjects[0].id;
+        newBoardId = (boards.find(b => b.projectId === newProjId) || {}).id;
+      }
+      return { ...s, projects, boards, activeProjectId: newProjId, activeBoardId: newBoardId };
+    });
+  };
+  const selectProject = (projectId) => {
+    setState(s => {
+      const firstBoard = s.boards.find(b => b.projectId === projectId);
+      return { ...s, activeProjectId: projectId, activeBoardId: firstBoard?.id || s.activeBoardId };
     });
   };
 
   // ---- Board management ----
   const createBoard = (name) => {
     const color = BOARD_COLORS[Math.floor(Math.random() * BOARD_COLORS.length)];
-    const newBoard = { id: uid('b'), name, areaId: state.activeAreaId, color, createdAt: Date.now(),
+    const newBoard = { id: uid('b'), name, areaId: state.activeAreaId, projectId: state.activeProjectId, color, createdAt: Date.now(),
       columns: [
         { id: uid('c'), name: 'A fazer', cards: [] },
         { id: uid('c'), name: 'Em andamento', cards: [] },
@@ -1509,8 +1924,8 @@ function KanbanApp() {
   const deleteBoard = (id) => {
     setState(s => {
       const remaining = s.boards.filter(b => b.id !== id);
-      const areaBoards = remaining.filter(b => b.areaId === s.activeAreaId);
-      return { ...s, boards: remaining, activeBoardId: areaBoards[0]?.id || remaining[0]?.id };
+      const projectBoards = remaining.filter(b => b.projectId === s.activeProjectId);
+      return { ...s, boards: remaining, activeBoardId: projectBoards[0]?.id || remaining.find(b => b.areaId === s.activeAreaId)?.id || remaining[0]?.id };
     });
   };
 
@@ -1567,6 +1982,21 @@ function KanbanApp() {
         const data = JSON.parse(ev.target.result);
         if (!data.boards || !Array.isArray(data.boards)) throw new Error('Formato inválido');
         if (!confirm(`Importar este arquivo? Os dados atuais serão SUBSTITUÍDOS.`)) { e.target.value = ''; return; }
+        // Normaliza para a hierarquia Área › Projeto › Board
+        if (!data.areas || data.areas.length === 0) {
+          const aId = uid('a');
+          data.areas = [{ id: aId, name: 'Planejamento', color: '#3b5cff', permissions: { view: 'all', edit: 'all' } }];
+          data.activeAreaId = aId;
+          data.boards = data.boards.map(b => ({ ...b, areaId: aId }));
+        }
+        if (!data.departments) data.departments = DEFAULT_DEPARTMENTS;
+        data.boards = data.boards.map((b, i) => b.color ? b : ({ ...b, color: (data.areas.find(a => a.id === b.areaId)?.color) || BOARD_COLORS[i % BOARD_COLORS.length] }));
+        if (!data.projects || data.projects.length === 0) {
+          const areaToProj = {};
+          data.projects = data.areas.map(a => { const p = { id: uid('p'), name: 'Projeto principal', areaId: a.id, color: a.color || '#8b5cf6', createdAt: Date.now() }; areaToProj[a.id] = p.id; return p; });
+          data.boards = data.boards.map(b => ({ ...b, projectId: b.projectId || areaToProj[b.areaId] }));
+          data.activeProjectId = areaToProj[data.activeAreaId] || data.projects[0]?.id;
+        }
         setState(data);
       } catch (err) { alert('Arquivo inválido: ' + err.message); }
       e.target.value = '';
@@ -1640,7 +2070,7 @@ function KanbanApp() {
     <div>
       {/* ===== HEADER ===== */}
       <header className="app-header flex items-center justify-between sticky top-0 z-30"
-        style={{ padding: '12px 20px', background: 'rgba(10, 10, 11, 0.85)', backdropFilter: 'blur(10px)', borderBottom: '1px solid var(--border-soft)' }}>
+        style={{ padding: '12px 20px', background: 'color-mix(in srgb, var(--bg) 85%, transparent)', backdropFilter: 'blur(10px)', borderBottom: '1px solid var(--border-soft)' }}>
         <div className="header-left flex items-center gap-3">
           <div className="flex items-center gap-3">
             <div className="brand-mini" style={{ width: 64, height: 30, background: '#ffffff', padding: '4px 6px', borderRadius: 6, display: 'flex', alignItems: 'center', justifyContent: 'center', overflow: 'hidden' }}>
@@ -1662,13 +2092,24 @@ function KanbanApp() {
             onCreate={createArea}
             onEditArea={(area) => setEditingArea(area)} />
 
-          <div className="header-divider" style={{ width: 1, height: 24, background: 'var(--border)' }} />
+          <ChevronRight size={13} style={{ color: 'var(--text-faint)', opacity: 0.5, flexShrink: 0 }} className="hide-on-mobile" />
 
-          {/* Board Switcher (scoped to active area) */}
+          {/* Project Switcher (scoped to active area) */}
+          <ProjectSwitcher
+            projects={state.projects || []}
+            activeProjectId={state.activeProjectId}
+            activeAreaId={state.activeAreaId}
+            onSelect={selectProject}
+            onCreate={createProject}
+            onEditProject={(project) => setEditingProject(project)} />
+
+          <ChevronRight size={13} style={{ color: 'var(--text-faint)', opacity: 0.5, flexShrink: 0 }} className="hide-on-mobile" />
+
+          {/* Board Switcher (scoped to active project) */}
           <BoardSwitcher
             boards={state.boards}
             activeBoardId={state.activeBoardId}
-            activeAreaId={state.activeAreaId}
+            activeProjectId={state.activeProjectId}
             onSelect={(id) => setState(s => ({ ...s, activeBoardId: id }))}
             onCreate={createBoard}
             onDelete={deleteBoard}
@@ -1694,11 +2135,14 @@ function KanbanApp() {
 
           <div style={{ width: 1, height: 24, background: 'var(--border)' }} />
 
+          {/* Theme switcher */}
+          <ThemeSwitcher theme={theme} onChange={setTheme} />
+
           {/* Dashboard toggle */}
           <button
             onClick={() => setShowDash(d => !d)}
             className="btn"
-            style={{ background: showDash ? 'var(--accent)' : 'transparent', color: showDash ? '#fff' : 'var(--text-dim)', border: `1px solid ${showDash ? 'var(--accent)' : 'var(--border)'}` }}>
+            style={{ background: showDash ? 'var(--accent)' : 'transparent', color: showDash ? 'var(--accent-text)' : 'var(--text-dim)', border: `1px solid ${showDash ? 'var(--accent)' : 'var(--border)'}` }}>
             <BarChart2 size={13} /> Dashboard
           </button>
 
@@ -1723,7 +2167,7 @@ function KanbanApp() {
           <button
             onClick={() => setShowDash(d => !d)}
             className="btn"
-            style={{ padding: '7px 10px', fontSize: 12, background: showDash ? 'var(--accent)' : 'transparent', color: showDash ? '#fff' : 'var(--text-dim)', border: `1px solid ${showDash ? 'var(--accent)' : 'var(--border)'}` }}>
+            style={{ padding: '7px 10px', fontSize: 12, background: showDash ? 'var(--accent)' : 'transparent', color: showDash ? 'var(--accent-text)' : 'var(--text-dim)', border: `1px solid ${showDash ? 'var(--accent)' : 'var(--border)'}` }}>
             <BarChart2 size={14} /> Dashboard
           </button>
           {/* Menu hamburguer */}
@@ -1766,6 +2210,29 @@ function KanbanApp() {
                 {syncStatus === 'error'      && (<><AlertCircle size={12} style={{ color: 'var(--danger)' }} /> Erro de sincronização</>)}
               </div>
 
+              {/* Cor do layout (tema) */}
+              <div>
+                <label style={{ fontSize: 10, textTransform: 'uppercase', letterSpacing: '0.1em', fontWeight: 600, color: 'var(--text-faint)', display: 'block', marginBottom: 6 }}>Cor do layout</label>
+                <div className="flex gap-2">
+                  {THEMES.map(t => {
+                    const isActive = t.id === theme;
+                    return (
+                      <button key={t.id} onClick={() => setTheme(t.id)}
+                        style={{ flex: 1, display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 6, padding: '10px 4px', borderRadius: 10, cursor: 'pointer',
+                          background: isActive ? 'var(--surface)' : 'transparent',
+                          border: `1px solid ${isActive ? t.swatch : 'var(--border-soft)'}` }}>
+                        <span style={{ display: 'inline-flex', borderRadius: '50%', overflow: 'hidden', width: 24, height: 24, border: '1px solid var(--border)' }}>
+                          <span style={{ width: '50%', background: t.swatch }} />
+                          <span style={{ width: '50%', background: t.dot2 }} />
+                        </span>
+                        <span style={{ fontSize: 11, fontWeight: 500, color: isActive ? 'var(--text)' : 'var(--text-dim)' }}>{t.name}</span>
+                        {isActive && <Check size={12} style={{ color: t.swatch }} />}
+                      </button>
+                    );
+                  })}
+                </div>
+              </div>
+
               {/* Search */}
               <div>
                 <label style={{ fontSize: 10, textTransform: 'uppercase', letterSpacing: '0.1em', fontWeight: 600, color: 'var(--text-faint)', display: 'block', marginBottom: 6 }}>Buscar</label>
@@ -1795,23 +2262,90 @@ function KanbanApp() {
                 </div>
               </div>
 
-              {/* Área ativa e permissões */}
+              {/* Navegação: Projetos da área */}
+              {activeArea && (state.projects || []).filter(p => p.areaId === activeAreaId).length > 0 && (
+                <div>
+                  <label style={{ fontSize: 10, textTransform: 'uppercase', letterSpacing: '0.1em', fontWeight: 600, color: 'var(--text-faint)', display: 'block', marginBottom: 6 }}>Projetos · {activeArea.name}</label>
+                  <div className="flex flex-col gap-1">
+                    {(state.projects || []).filter(p => p.areaId === activeAreaId).map(p => {
+                      const isActive = p.id === state.activeProjectId;
+                      const pBoards = state.boards.filter(b => b.projectId === p.id).length;
+                      return (
+                        <button key={p.id}
+                          onClick={() => { selectProject(p.id); }}
+                          style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '9px 12px', borderRadius: 8, fontSize: 13,
+                            background: isActive ? 'var(--surface)' : 'transparent',
+                            border: `1px solid ${isActive ? (p.color || '#8b5cf6') + '55' : 'var(--border-soft)'}`,
+                            color: isActive ? 'var(--text)' : 'var(--text-dim)', cursor: 'pointer', textAlign: 'left' }}>
+                          <span style={{ width: 10, height: 10, borderRadius: '50%', background: p.color || '#8b5cf6', flexShrink: 0 }} />
+                          <span className="truncate flex-1">{p.name}</span>
+                          <span style={{ fontSize: 10, color: 'var(--text-faint)' }}>{pBoards} {pBoards === 1 ? 'quadro' : 'quadros'}</span>
+                          {isActive && <Check size={12} style={{ color: p.color || '#8b5cf6' }} />}
+                        </button>
+                      );
+                    })}
+                    <button onClick={() => { const n = prompt('Nome do novo projeto:'); if (n?.trim()) { createProject(n.trim()); } }}
+                      style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '9px 12px', borderRadius: 8, fontSize: 13, background: 'transparent', border: '1px dashed var(--border)', color: 'var(--text-faint)', cursor: 'pointer', textAlign: 'left' }}>
+                      <Plus size={13} /> Novo projeto
+                    </button>
+                  </div>
+                </div>
+              )}
+
+              {/* Navegação: Quadros do projeto */}
+              {activeProject && (
+                <div>
+                  <label style={{ fontSize: 10, textTransform: 'uppercase', letterSpacing: '0.1em', fontWeight: 600, color: 'var(--text-faint)', display: 'block', marginBottom: 6 }}>Quadros · {activeProject.name}</label>
+                  <div className="flex flex-col gap-1">
+                    {state.boards.filter(b => b.projectId === state.activeProjectId).map(b => {
+                      const isActive = b.id === state.activeBoardId;
+                      return (
+                        <button key={b.id}
+                          onClick={() => { setState(s => ({ ...s, activeBoardId: b.id })); setShowDash(false); setMobileMenuOpen(false); }}
+                          style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '9px 12px', borderRadius: 8, fontSize: 13,
+                            background: isActive ? 'var(--surface)' : 'transparent',
+                            border: `1px solid ${isActive ? (b.color || '#3b5cff') + '55' : 'var(--border-soft)'}`,
+                            color: isActive ? 'var(--text)' : 'var(--text-dim)', cursor: 'pointer', textAlign: 'left' }}>
+                          <span style={{ width: 10, height: 10, borderRadius: '50%', background: b.color || '#3b5cff', flexShrink: 0 }} />
+                          <span className="truncate flex-1">{b.name}</span>
+                          {isActive && <Check size={12} style={{ color: b.color || '#3b5cff' }} />}
+                        </button>
+                      );
+                    })}
+                    <button onClick={() => { const n = prompt('Nome do novo quadro:'); if (n?.trim()) { createBoard(n.trim()); setMobileMenuOpen(false); } }}
+                      style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '9px 12px', borderRadius: 8, fontSize: 13, background: 'transparent', border: '1px dashed var(--border)', color: 'var(--text-faint)', cursor: 'pointer', textAlign: 'left' }}>
+                      <Plus size={13} /> Novo quadro
+                    </button>
+                  </div>
+                </div>
+              )}
+
+              {/* Quadro atual + config */}
               {activeArea && activeBoard && (
                 <div>
-                  <label style={{ fontSize: 10, textTransform: 'uppercase', letterSpacing: '0.1em', fontWeight: 600, color: 'var(--text-faint)', display: 'block', marginBottom: 6 }}>Board atual</label>
+                  <label style={{ fontSize: 10, textTransform: 'uppercase', letterSpacing: '0.1em', fontWeight: 600, color: 'var(--text-faint)', display: 'block', marginBottom: 6 }}>Configurações do quadro atual</label>
                   <div style={{ background: 'var(--surface)', border: '1px solid var(--border-soft)', borderRadius: 8, padding: 12, display: 'flex', flexDirection: 'column', gap: 8 }}>
+                    <div className="flex items-center gap-2" style={{ flexWrap: 'wrap' }}>
+                      <span style={{ width: 6, height: 6, borderRadius: '50%', background: activeArea.color, flexShrink: 0 }} />
+                      <span style={{ fontSize: 10, color: 'var(--text-faint)' }}>{activeArea.name}</span>
+                      <ChevronRight size={10} style={{ color: 'var(--text-faint)', opacity: 0.5 }} />
+                      <span style={{ width: 6, height: 6, borderRadius: '50%', background: activeProject?.color || '#8b5cf6', flexShrink: 0 }} />
+                      <span style={{ fontSize: 10, color: 'var(--text-faint)' }}>{activeProject?.name}</span>
+                    </div>
                     <div className="flex items-center gap-2">
                       <span style={{ width: 10, height: 10, borderRadius: '50%', background: activeBoard.color || '#3b5cff', flexShrink: 0 }} />
                       <span style={{ fontSize: 13, fontWeight: 600, color: 'var(--text)' }}>{activeBoard.name}</span>
                     </div>
-                    <div className="flex items-center gap-2">
-                      <span style={{ width: 6, height: 6, borderRadius: '50%', background: activeArea.color, flexShrink: 0 }} />
-                      <span style={{ fontSize: 11, color: 'var(--text-faint)' }}>{activeArea.name}</span>
+                    <div className="flex gap-2" style={{ marginTop: 4 }}>
+                      <button className="btn btn-outline" style={{ justifyContent: 'center', padding: '8px 10px', flex: 1, fontSize: 12 }}
+                        onClick={() => { setEditingBoard(activeBoard); setMobileMenuOpen(false); }}>
+                        <Settings size={12} /> Quadro
+                      </button>
+                      <button className="btn btn-outline" style={{ justifyContent: 'center', padding: '8px 10px', flex: 1, fontSize: 12 }}
+                        onClick={() => { setEditingProject(activeProject); setMobileMenuOpen(false); }}>
+                        <FolderIcon size={12} /> Projeto
+                      </button>
                     </div>
-                    <button className="btn btn-outline" style={{ justifyContent: 'flex-start', padding: '8px 12px', marginTop: 4 }}
-                      onClick={() => { setEditingBoard(activeBoard); setMobileMenuOpen(false); }}>
-                      <Settings size={13} /> Configurar board (nome e cor)
-                    </button>
                   </div>
                 </div>
               )}
@@ -1874,7 +2408,7 @@ function KanbanApp() {
       {/* ===== MAIN ===== */}
       <main className="app-main" style={{ padding: '20px' }}>
         {showDash && state && activeArea && (
-          <Dashboard boards={state.boards} areas={state.areas} activeAreaId={state.activeAreaId} activeBoardId={state.activeBoardId} />
+          <Dashboard boards={state.boards} areas={state.areas} projects={state.projects || []} activeAreaId={state.activeAreaId} activeProjectId={state.activeProjectId} activeBoardId={state.activeBoardId} />
         )}
         {!showDash && activeBoard && activeArea && (
           <>
@@ -1891,10 +2425,21 @@ function KanbanApp() {
                     {activeBoard.columns.reduce((acc, c) => acc + c.cards.length, 0)} cards · {activeBoard.columns.length} colunas
                   </span>
                 </div>
-                {/* Area breadcrumb */}
-                <div className="flex items-center gap-1" style={{ marginTop: 4 }}>
+                {/* Area › Project breadcrumb */}
+                <div className="flex items-center gap-1 flex-wrap" style={{ marginTop: 4 }}>
                   <span style={{ width: 6, height: 6, borderRadius: '50%', background: activeArea.color }} />
                   <span style={{ fontSize: 11, color: 'var(--text-faint)' }}>{activeArea.name}</span>
+                  {activeProject && (
+                    <>
+                      <ChevronRight size={11} style={{ color: 'var(--text-faint)', opacity: 0.5 }} />
+                      <button onClick={() => setEditingProject(activeProject)}
+                        title="Configurar projeto"
+                        style={{ display: 'flex', alignItems: 'center', gap: 4, background: 'none', border: 'none', cursor: 'pointer', padding: 0 }}>
+                        <span style={{ width: 6, height: 6, borderRadius: '50%', background: activeProject.color || '#8b5cf6' }} />
+                        <span style={{ fontSize: 11, color: 'var(--text-faint)' }}>{activeProject.name}</span>
+                      </button>
+                    </>
+                  )}
                 </div>
               </div>
 
@@ -1953,13 +2498,23 @@ function KanbanApp() {
           canDelete={state.areas.length > 1} />
       )}
 
+      {editingProject && (
+        <ProjectSettingsModal
+          project={editingProject}
+          boardCount={state.boards.filter(b => b.projectId === editingProject.id).length}
+          onSave={(updated) => { saveProject(updated); setEditingProject(null); }}
+          onClose={() => setEditingProject(null)}
+          onDelete={(id) => { deleteProject(id); setEditingProject(null); }}
+          canDelete={(state.projects || []).filter(p => p.areaId === editingProject.areaId).length > 1} />
+      )}
+
       {editingBoard && (
         <BoardSettingsModal
           board={editingBoard}
           onSave={(updated) => { saveBoard(updated); setEditingBoard(null); }}
           onClose={() => setEditingBoard(null)}
           onDelete={(id) => { deleteBoard(id); setEditingBoard(null); }}
-          canDelete={state.boards.filter(b => b.areaId === editingBoard.areaId).length > 1} />
+          canDelete={state.boards.filter(b => b.projectId === editingBoard.projectId).length > 1} />
       )}
     </div>
   );
