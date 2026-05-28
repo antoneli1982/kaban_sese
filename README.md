@@ -4,6 +4,17 @@ Sistema Kanban em tempo real com Firebase, agora instalável como **aplicativo**
 
 ---
 
+## 🔔 Alertas de prazo (com sirene)
+
+O app avisa quando uma tarefa está perto do prazo, com sinais visuais e sonoros:
+
+- **No card:** quando o prazo é amanhã, hoje, ou já passou, o card ganha borda colorida e uma faixa de aviso — âmbar para "Vence amanhã", laranja para "Vence hoje" e vermelho piscando para "Atrasado".
+- **Banner no topo:** sempre que houver tarefas urgentes, aparece uma barra resumindo (ex: "3 tarefas precisam de atenção · 1 atrasada · 1 vence hoje · 1 vence amanhã"), com botão para tocar a sirene e para dispensar.
+- **Sirene sonora:** toca quando há tarefas atrasadas ou vencendo hoje. O som é gerado pelo próprio app (sem arquivo). Por regra dos navegadores, na primeira vez ele só dispara depois que você toca/clica na tela; depois funciona normalmente. Dá para ligar/desligar no menu (☰ → "Sirene de prazo") ou no banner, e a escolha fica salva no aparelho.
+- **Projetos e áreas:** os cartões das telas de visão geral mostram um selo com o número de tarefas urgentes, piscando quando há algo atrasado ou para hoje.
+
+---
+
 ## 📎 Anexos nos cards
 
 Cada card tem uma seção **Anexos**. Você cola o link de um arquivo (Google Drive, OneDrive, Dropbox, ou qualquer site) e ele fica listado no card com um ícone que identifica o tipo (PDF, planilha, documento, imagem ou link), um botão para abrir e um para remover. O card mostra um indicador 📎 com a quantidade de anexos.

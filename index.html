@@ -257,6 +257,17 @@
     grid-template-columns: repeat(auto-fill, minmax(260px, 1fr));
     gap: 14px;
   }
+
+  /* Alerta de prazo pulsante */
+  @keyframes pulseAlert {
+    0%, 100% { opacity: 1; }
+    50% { opacity: 0.45; }
+  }
+  .pulse-alert { animation: pulseAlert 1.3s ease-in-out infinite; }
+  @keyframes urgentGlow {
+    0%, 100% { box-shadow: 0 0 0 0 transparent; }
+    50% { box-shadow: 0 0 0 2px var(--border); }
+  }
   .overview-card:hover { transform: translateY(-2px); }
   @media (hover: none) {
     .overview-card:active { transform: scale(0.99); }
@@ -496,6 +507,11 @@ const FileSheet = (p) => <Svg {...p}><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0
 const MoreHorizontal = (p) => <Svg {...p}><circle cx="12" cy="12" r="1"/><circle cx="19" cy="12" r="1"/><circle cx="5" cy="12" r="1"/></Svg>;
 const Search  = (p) => <Svg {...p}><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></Svg>;
 const AlertCircle = (p) => <Svg {...p}><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></Svg>;
+const AlertTriangle = (p) => <Svg {...p}><path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></Svg>;
+const Bell = (p) => <Svg {...p}><path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.73 21a2 2 0 0 1-3.46 0"/></Svg>;
+const BellRing = (p) => <Svg {...p}><path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.73 21a2 2 0 0 1-3.46 0"/><path d="M2 8c0-2.2.7-4.3 2-6"/><path d="M22 8a10 10 0 0 0-2-6"/></Svg>;
+const Volume2 = (p) => <Svg {...p}><polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5"/><path d="M15.54 8.46a5 5 0 0 1 0 7.07"/><path d="M19.07 4.93a10 10 0 0 1 0 14.14"/></Svg>;
+const VolumeX = (p) => <Svg {...p}><polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5"/><line x1="23" y1="9" x2="17" y2="15"/><line x1="17" y1="9" x2="23" y2="15"/></Svg>;
 const Loader2 = (p) => <Svg {...p}><path d="M21 12a9 9 0 1 1-6.219-8.56"/></Svg>;
 const Download= (p) => <Svg {...p}><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></Svg>;
 const Upload  = (p) => <Svg {...p}><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></Svg>;
@@ -519,6 +535,63 @@ function permLabel(perm, departments) {
   if (!Array.isArray(perm) || perm.length === 0) return 'Nenhum';
   const names = departments.filter(d => perm.includes(d.id)).map(d => d.name);
   return names.length > 2 ? names.slice(0, 2).join(', ') + ` +${names.length - 2}` : names.join(', ');
+}
+
+// ============================================================
+// ALERTAS DE PRAZO (vencido / hoje / amanhã) + SIRENE
+// ============================================================
+function dueStatus(dueDate) {
+  if (!dueDate) return 'none';
+  const today = new Date(); today.setHours(0, 0, 0, 0);
+  const due = new Date(dueDate + 'T00:00:00'); due.setHours(0, 0, 0, 0);
+  const diff = Math.round((due - today) / 86400000);
+  if (diff < 0) return 'overdue';
+  if (diff === 0) return 'today';
+  if (diff === 1) return 'tomorrow';
+  return 'future';
+}
+const DUE_META = {
+  overdue:  { color: '#e11d48', label: 'Atrasado',     short: 'Atrasado' },
+  today:    { color: '#f97316', label: 'Vence hoje',   short: 'Hoje' },
+  tomorrow: { color: '#f59e0b', label: 'Vence amanhã', short: 'Amanhã' },
+};
+function isUrgent(s) { return s === 'overdue' || s === 'today' || s === 'tomorrow'; }
+
+// Conta cards urgentes em um conjunto de boards
+function collectAlerts(boards) {
+  const r = { overdue: 0, today: 0, tomorrow: 0, total: 0, items: [] };
+  (boards || []).forEach(b => b.columns.forEach(col => col.cards.forEach(card => {
+    const s = dueStatus(card.dueDate);
+    if (isUrgent(s)) { r[s]++; r.total++; r.items.push({ ...card, _board: b.name, _status: s }); }
+  })));
+  return r;
+}
+
+// Toca uma sirene curta usando Web Audio (sem arquivo externo)
+function playSiren() {
+  try {
+    const Ctx = window.AudioContext || window.webkitAudioContext;
+    if (!Ctx) return;
+    const ctx = new Ctx();
+    const osc = ctx.createOscillator();
+    const gain = ctx.createGain();
+    osc.connect(gain); gain.connect(ctx.destination);
+    osc.type = 'sawtooth';
+    const t0 = ctx.currentTime;
+    gain.gain.setValueAtTime(0.0001, t0);
+    gain.gain.exponentialRampToValueAtTime(0.18, t0 + 0.05);
+    let t = t0;
+    for (let i = 0; i < 3; i++) {           // 3 ciclos de sirene
+      osc.frequency.setValueAtTime(620, t);
+      osc.frequency.linearRampToValueAtTime(960, t + 0.35);
+      osc.frequency.linearRampToValueAtTime(620, t + 0.7);
+      t += 0.7;
+    }
+    gain.gain.setValueAtTime(0.18, t - 0.08);
+    gain.gain.exponentialRampToValueAtTime(0.0001, t);
+    osc.start(t0); osc.stop(t + 0.05);
+    osc.onended = () => ctx.close();
+  } catch (e) { console.warn('Áudio bloqueado pelo navegador:', e); }
 }
 
 // Detecta o tipo de anexo a partir da URL (para escolher o ícone/cor)
@@ -569,15 +642,28 @@ function PriorityDot({ priority }) {
 }
 
 function Card({ card, onClick, onDragStart, onDragEnd, isDragging }) {
-  const dueOverdue = card.dueDate && new Date(card.dueDate) < new Date(new Date().toDateString());
   const [hover, setHover] = useState(false);
   const progress = card.progress ?? 0;
   const progOpt  = PROGRESS_OPTIONS.find(p => p.value === progress) || PROGRESS_OPTIONS[0];
+  const dStatus = dueStatus(card.dueDate);
+  const urgent = isUrgent(dStatus);
+  const dueOverdue = dStatus === 'overdue';
+  const dueMeta = DUE_META[dStatus];
   return (
     <div draggable onDragStart={onDragStart} onDragEnd={onDragEnd} onClick={onClick}
       onMouseEnter={() => setHover(true)} onMouseLeave={() => setHover(false)}
-      className={`fade-in ${isDragging ? 'card-dragging' : ''}`}
-      style={{ background: 'var(--surface)', border: `1px solid ${hover ? '#3f3f46' : 'var(--border)'}`, borderRadius: 8, padding: 12, cursor: 'grab', transition: 'border-color 0.12s', overflow: 'hidden' }}>
+      className={`fade-in ${isDragging ? 'card-dragging' : ''} ${urgent ? 'card-urgent' : ''}`}
+      style={{ background: 'var(--surface)', border: `1px solid ${urgent ? dueMeta.color : (hover ? '#3f3f46' : 'var(--border)')}`, borderLeft: urgent ? `4px solid ${dueMeta.color}` : `1px solid ${hover ? '#3f3f46' : 'var(--border)'}`, borderRadius: 8, padding: 12, cursor: 'grab', transition: 'border-color 0.12s', overflow: 'hidden' }}>
+
+      {/* Banner de alerta de prazo */}
+      {urgent && (
+        <div className={dStatus !== 'tomorrow' ? 'pulse-alert' : ''}
+          style={{ display: 'flex', alignItems: 'center', gap: 5, marginBottom: 8, padding: '4px 8px', borderRadius: 5, background: dueMeta.color + '22', color: dueMeta.color, fontSize: 11, fontWeight: 600 }}>
+          {dStatus === 'tomorrow' ? <Bell size={12} /> : <BellRing size={12} />}
+          {dueMeta.label}{card.dueDate ? ` · ${new Date(card.dueDate + 'T00:00:00').toLocaleDateString('pt-BR', { day: '2-digit', month: 'short' })}` : ''}
+        </div>
+      )}
+
       {card.labels?.length > 0 && (
         <div className="flex flex-wrap gap-1" style={{ marginBottom: 8 }}>
           {card.labels.map(l => <LabelTag key={l} colorId={l} />)}
@@ -1153,7 +1239,8 @@ function AreasOverview({ areas, projects, boards, departments, activeAreaId, onO
     const aBoards = boards.filter(b => b.areaId === areaId);
     const cards = aBoards.flatMap(b => b.columns.flatMap(c => c.cards));
     const avg = cards.length ? Math.round(cards.reduce((s, c) => s + (c.progress ?? 0), 0) / cards.length) : 0;
-    return { projects: aProjects.length, boards: aBoards.length, cards: cards.length, avg };
+    const al = collectAlerts(aBoards);
+    return { projects: aProjects.length, boards: aBoards.length, cards: cards.length, avg, alerts: al };
   };
 
   return (
@@ -1184,10 +1271,22 @@ function AreasOverview({ areas, projects, boards, departments, activeAreaId, onO
                     <span style={{ width: 12, height: 12, borderRadius: '50%', background: a.color, flexShrink: 0 }} />
                     <span className="font-display truncate" style={{ fontSize: 17, fontWeight: 600 }}>{a.name}</span>
                   </div>
-                  <button onClick={(e) => { e.stopPropagation(); onEditArea(a); }}
-                    className="btn btn-ghost" style={{ padding: 5, flexShrink: 0 }} title="Configurar área">
-                    <Settings size={13} />
-                  </button>
+                  <div className="flex items-center gap-1" style={{ flexShrink: 0 }}>
+                    {s.alerts.total > 0 && (() => {
+                      const high = s.alerts.overdue + s.alerts.today > 0;
+                      const ac = high ? '#e11d48' : '#f59e0b';
+                      return (
+                        <span className={high ? 'pulse-alert' : ''} title={`${s.alerts.overdue} atrasadas · ${s.alerts.today} hoje · ${s.alerts.tomorrow} amanhã`}
+                          style={{ display: 'inline-flex', alignItems: 'center', gap: 3, fontSize: 11, fontWeight: 700, color: ac, background: ac + '22', padding: '2px 7px', borderRadius: 20 }}>
+                          {high ? <BellRing size={11} /> : <Bell size={11} />} {s.alerts.total}
+                        </span>
+                      );
+                    })()}
+                    <button onClick={(e) => { e.stopPropagation(); onEditArea(a); }}
+                      className="btn btn-ghost" style={{ padding: 5 }} title="Configurar área">
+                      <Settings size={13} />
+                    </button>
+                  </div>
                 </div>
 
                 {/* stats */}
@@ -1235,7 +1334,7 @@ function ProjectsOverview({ area, projects, boards, activeProjectId, onBackToAre
     const pBoards = boards.filter(b => b.projectId === projectId);
     const cards = pBoards.flatMap(b => b.columns.flatMap(c => c.cards));
     const avg = cards.length ? Math.round(cards.reduce((s, c) => s + (c.progress ?? 0), 0) / cards.length) : 0;
-    return { boards: pBoards.length, cards: cards.length, avg };
+    return { boards: pBoards.length, cards: cards.length, avg, alerts: collectAlerts(pBoards) };
   };
 
   return (
@@ -1276,10 +1375,22 @@ function ProjectsOverview({ area, projects, boards, activeProjectId, onBackToAre
                     <FolderIcon size={15} style={{ color: c, flexShrink: 0 }} />
                     <span className="font-display truncate" style={{ fontSize: 17, fontWeight: 600 }}>{p.name}</span>
                   </div>
-                  <button onClick={(e) => { e.stopPropagation(); onEditProject(p); }}
-                    className="btn btn-ghost" style={{ padding: 5, flexShrink: 0 }} title="Configurar projeto">
-                    <Settings size={13} />
-                  </button>
+                  <div className="flex items-center gap-1" style={{ flexShrink: 0 }}>
+                    {s.alerts.total > 0 && (() => {
+                      const high = s.alerts.overdue + s.alerts.today > 0;
+                      const ac = high ? '#e11d48' : '#f59e0b';
+                      return (
+                        <span className={high ? 'pulse-alert' : ''} title={`${s.alerts.overdue} atrasadas · ${s.alerts.today} hoje · ${s.alerts.tomorrow} amanhã`}
+                          style={{ display: 'inline-flex', alignItems: 'center', gap: 3, fontSize: 11, fontWeight: 700, color: ac, background: ac + '22', padding: '2px 7px', borderRadius: 20 }}>
+                          {high ? <BellRing size={11} /> : <Bell size={11} />} {s.alerts.total}
+                        </span>
+                      );
+                    })()}
+                    <button onClick={(e) => { e.stopPropagation(); onEditProject(p); }}
+                      className="btn btn-ghost" style={{ padding: 5 }} title="Configurar projeto">
+                      <Settings size={13} />
+                    </button>
+                  </div>
                 </div>
 
                 <div className="flex" style={{ gap: 14, marginBottom: 12 }}>
@@ -1980,6 +2091,12 @@ function KanbanApp() {
     try { return localStorage.getItem('kanban-theme') || DEFAULT_THEME; }
     catch { return DEFAULT_THEME; }
   });
+  const [soundOn, setSoundOn] = useState(() => {
+    try { return localStorage.getItem('kanban-sound') !== 'off'; }
+    catch { return true; }
+  });
+  const [alertsDismissed, setAlertsDismissed] = useState(false);
+  const sirenPlayed = useRef(false);
   const [fbState, setFbState] = useState(() => {
     if (window.__fbNotConfigured) return 'unconfigured';
     if (window.__fbError) return 'error';
@@ -2126,6 +2243,39 @@ function KanbanApp() {
   const activeArea  = state?.areas.find(a => a.id === state.activeAreaId);
   const activeProject = (state?.projects || []).find(p => p.id === state.activeProjectId);
   const activeBoard = state?.boards.find(b => b.id === state.activeBoardId);
+
+  // ---- Alertas de prazo (todos os boards) ----
+  const alerts = React.useMemo(() => collectAlerts(state?.boards || []), [state?.boards]);
+
+  // Persiste preferência de som
+  useEffect(() => {
+    try { localStorage.setItem('kanban-sound', soundOn ? 'on' : 'off'); } catch {}
+  }, [soundOn]);
+
+  // Toca a sirene uma vez quando há alertas (após o app carregar e o usuário interagir)
+  useEffect(() => {
+    if (!state || loading) return;
+    if (!soundOn) return;
+    if (sirenPlayed.current) return;
+    // só dispara para urgência alta (atrasado ou vence hoje)
+    if (alerts.overdue + alerts.today > 0) {
+      const fire = () => {
+        if (sirenPlayed.current) return;
+        sirenPlayed.current = true;
+        playSiren();
+        window.removeEventListener('pointerdown', fire);
+        window.removeEventListener('keydown', fire);
+      };
+      // tenta tocar já; se o navegador bloquear, toca na primeira interação
+      playSiren();
+      window.addEventListener('pointerdown', fire, { once: true });
+      window.addEventListener('keydown', fire, { once: true });
+      return () => {
+        window.removeEventListener('pointerdown', fire);
+        window.removeEventListener('keydown', fire);
+      };
+    }
+  }, [state, loading, soundOn, alerts.overdue, alerts.today]);
 
   // ---- Area management ----
   const createArea = (name) => {
@@ -2389,7 +2539,7 @@ function KanbanApp() {
             </div>
             <div className="brand-text-block flex flex-col" style={{ lineHeight: 1.2, textAlign: 'left' }}>
               <span className="font-display" style={{ fontSize: 16, fontWeight: 600, color: 'var(--text)' }}>Kanban SESE</span>
-              <span className="font-mono" style={{ fontSize: 10, textTransform: 'uppercase', letterSpacing: '0.12em', color: 'var(--text-faint)' }}>tempo real · v2 ✓</span>
+              <span className="font-mono" style={{ fontSize: 10, textTransform: 'uppercase', letterSpacing: '0.12em', color: 'var(--text-faint)' }}>tempo real · v3 ✓</span>
             </div>
           </button>
 
@@ -2512,7 +2662,7 @@ function KanbanApp() {
                 </div>
                 <div>
                   <div className="font-display" style={{ fontSize: 14, fontWeight: 600 }}>Kanban SESE</div>
-                  <div className="font-mono" style={{ fontSize: 9, textTransform: 'uppercase', letterSpacing: '0.12em', color: 'var(--text-faint)' }}>menu · v2 ✓</div>
+                  <div className="font-mono" style={{ fontSize: 9, textTransform: 'uppercase', letterSpacing: '0.12em', color: 'var(--text-faint)' }}>menu · v3 ✓</div>
                 </div>
               </div>
               <button onClick={() => setMobileMenuOpen(false)} className="btn btn-ghost" style={{ padding: 6 }}>
@@ -2550,6 +2700,19 @@ function KanbanApp() {
                     );
                   })}
                 </div>
+              </div>
+
+              {/* Som de alerta */}
+              <div>
+                <label style={{ fontSize: 10, textTransform: 'uppercase', letterSpacing: '0.1em', fontWeight: 600, color: 'var(--text-faint)', display: 'block', marginBottom: 6 }}>Sirene de prazo</label>
+                <button onClick={() => { setSoundOn(s => !s); if (!soundOn) playSiren(); }}
+                  className="btn" style={{ width: '100%', justifyContent: 'space-between', padding: '10px 14px', background: 'var(--surface)', border: `1px solid ${soundOn ? 'var(--accent)' : 'var(--border-soft)'}`, color: 'var(--text-dim)' }}>
+                  <span className="flex items-center gap-2" style={{ color: 'var(--text)' }}>
+                    {soundOn ? <Volume2 size={15} /> : <VolumeX size={15} />}
+                    Som {soundOn ? 'ligado' : 'desligado'}
+                  </span>
+                  <span style={{ fontSize: 11, color: soundOn ? 'var(--accent)' : 'var(--text-faint)' }}>{soundOn ? 'tocar teste' : 'tocar p/ ligar'}</span>
+                </button>
               </div>
 
               {/* Search */}
@@ -2738,6 +2901,43 @@ function KanbanApp() {
           </div>
         </>
       )}
+
+      {/* ===== BANNER DE ALERTAS DE PRAZO ===== */}
+      {alerts.total > 0 && !alertsDismissed && (() => {
+        const high = alerts.overdue + alerts.today > 0;
+        const accent = high ? '#e11d48' : '#f59e0b';
+        const parts = [];
+        if (alerts.overdue) parts.push(`${alerts.overdue} atrasada${alerts.overdue > 1 ? 's' : ''}`);
+        if (alerts.today) parts.push(`${alerts.today} vence${alerts.today > 1 ? 'm' : ''} hoje`);
+        if (alerts.tomorrow) parts.push(`${alerts.tomorrow} vence${alerts.tomorrow > 1 ? 'm' : ''} amanhã`);
+        return (
+          <div className="alert-banner flex items-center justify-between"
+            style={{ padding: '10px 20px', background: accent + '1a', borderBottom: `1px solid ${accent}55`, gap: 12, flexWrap: 'wrap' }}>
+            <div className="flex items-center gap-2" style={{ minWidth: 0 }}>
+              <span className={high ? 'pulse-alert' : ''} style={{ color: accent, display: 'flex', flexShrink: 0 }}>
+                {high ? <BellRing size={18} /> : <Bell size={18} />}
+              </span>
+              <span style={{ fontSize: 13, color: 'var(--text)', fontWeight: 500 }}>
+                <strong style={{ color: accent }}>{alerts.total}</strong> {alerts.total > 1 ? 'tarefas precisam' : 'tarefa precisa'} de atenção
+                <span className="hide-on-mobile" style={{ color: 'var(--text-dim)', fontWeight: 400 }}>{parts.length ? ' · ' + parts.join(' · ') : ''}</span>
+              </span>
+            </div>
+            <div className="flex items-center gap-2" style={{ flexShrink: 0 }}>
+              <button onClick={() => { setSoundOn(s => !s); if (!soundOn) playSiren(); }}
+                className="btn btn-ghost" style={{ padding: '5px 8px', color: 'var(--text-dim)' }}
+                title={soundOn ? 'Som ligado — clique para testar/desligar' : 'Som desligado'}>
+                {soundOn ? <Volume2 size={15} /> : <VolumeX size={15} />}
+              </button>
+              <button onClick={() => playSiren()} className="btn" style={{ padding: '5px 10px', fontSize: 12, background: accent, color: '#fff', border: 'none' }}>
+                <BellRing size={13} /> <span className="hide-on-mobile">Tocar sirene</span>
+              </button>
+              <button onClick={() => setAlertsDismissed(true)} className="btn btn-ghost" style={{ padding: 5, color: 'var(--text-faint)' }} title="Dispensar">
+                <X size={15} />
+              </button>
+            </div>
+          </div>
+        );
+      })()}
 
       {/* ===== MAIN ===== */}
       <main className="app-main" style={{ padding: '20px' }}>
