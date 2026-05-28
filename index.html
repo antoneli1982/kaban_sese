@@ -2,9 +2,31 @@
 <html lang="pt-BR">
 <head>
 <meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover, user-scalable=no">
 <title>Kanban SESE</title>
-<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Crect width='100' height='100' rx='20' fill='%233b5cff'/%3E%3Ctext x='50' y='68' font-family='sans-serif' font-size='60' font-weight='700' fill='white' text-anchor='middle'%3EK%3C/text%3E%3C/svg%3E">
+
+<!-- ============================================================ -->
+<!-- 📱 PWA - Aplicativo instalável                                -->
+<!-- ============================================================ -->
+<link rel="manifest" href="manifest.json">
+<meta name="theme-color" content="#3b5cff">
+<meta name="background-color" content="#0a0a0b">
+<meta name="description" content="Sistema de gestão Kanban em tempo real para o time SESE.">
+
+<!-- iOS / Safari -->
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="Kanban">
+<link rel="apple-touch-icon" href="icon-180.png">
+<link rel="apple-touch-icon" sizes="192x192" href="icon-192.png">
+<link rel="apple-touch-icon" sizes="512x512" href="icon-512.png">
+
+<!-- Favicons -->
+<link rel="icon" type="image/png" sizes="32x32" href="icon-32.png">
+<link rel="icon" type="image/png" sizes="16x16" href="icon-16.png">
+<link rel="icon" type="image/png" sizes="192x192" href="icon-192.png">
+<link rel="shortcut icon" href="favicon.ico">
 <style>
   @import url('https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700;800&display=swap');
 
@@ -127,13 +149,115 @@
   .rounded-xl { border-radius: 12px; }
   .rounded-full { border-radius: 9999px; }
   .text-left { text-align: left; }
+
+  /* Dept chip */
+  .dept-chip {
+    display: inline-flex; align-items: center; padding: 4px 10px;
+    border-radius: 20px; font-size: 12px; font-weight: 500;
+    cursor: pointer; border: 1px solid var(--border);
+    transition: all 0.12s; user-select: none;
+    background: var(--bg-soft); color: var(--text-dim);
+  }
+  .dept-chip:hover { border-color: #3f3f46; color: var(--text); }
+  .dept-chip.active { color: #fff; border-color: transparent; }
+
+  /* ============================================================ */
+  /* 📱 RESPONSIVIDADE MOBILE                                       */
+  /* ============================================================ */
+
+  /* Safe-area iOS (notch / dynamic island) */
+  body {
+    padding-top: env(safe-area-inset-top);
+    padding-bottom: env(safe-area-inset-bottom);
+    padding-left: env(safe-area-inset-left);
+    padding-right: env(safe-area-inset-right);
+  }
+
+  /* Touch otimizado: previne zoom em double-tap e melhora scroll */
+  button, a, [role="button"] { touch-action: manipulation; -webkit-tap-highlight-color: transparent; }
+  input, textarea, select { font-size: 16px !important; } /* iOS não dá zoom se >=16px */
+
+  /* === Mobile menu drawer === */
+  .mobile-menu-btn { display: none; }
+  .mobile-only { display: none; }
+  .desktop-only { display: flex; }
+
+  .mobile-drawer-backdrop {
+    position: fixed; inset: 0; z-index: 40;
+    background: rgba(0,0,0,0.7); backdrop-filter: blur(4px);
+    animation: fadeIn 0.18s ease-out;
+  }
+  .mobile-drawer {
+    position: fixed; top: 0; right: 0; bottom: 0; z-index: 50;
+    width: 85%; max-width: 360px;
+    background: var(--bg-soft); border-left: 1px solid var(--border);
+    box-shadow: -20px 0 60px rgba(0,0,0,0.5);
+    display: flex; flex-direction: column;
+    animation: slideInRight 0.22s ease-out;
+    overflow-y: auto;
+  }
+  @keyframes slideInRight {
+    from { transform: translateX(100%); }
+    to { transform: translateX(0); }
+  }
+
+  /* ===== TABLET (até 900px) ===== */
+  @media (max-width: 900px) {
+    .dash-grid-2 { grid-template-columns: 1fr !important; }
+  }
+
+  /* ===== MOBILE (até 640px) ===== */
+  @media (max-width: 640px) {
+    .mobile-menu-btn { display: inline-flex; }
+    .mobile-only { display: flex; }
+    .desktop-only { display: none !important; }
+    .hide-on-mobile { display: none !important; }
+
+    /* Header */
+    .app-header { padding: 10px 14px !important; }
+    .app-header .header-left { gap: 8px !important; }
+    .app-header .brand-text-block { display: none; }
+    .app-header .brand-mini { width: 36px !important; height: 36px !important; }
+    .app-header .header-divider { display: none; }
+
+    /* Main padding */
+    .app-main { padding: 14px !important; }
+
+    /* Board title */
+    .board-title { font-size: 22px !important; }
+    .board-meta-row { flex-direction: column; align-items: flex-start !important; gap: 12px !important; }
+
+    /* Permissions panel: simplifica no mobile */
+    .perm-panel { min-width: 0 !important; width: 100%; padding: 8px 12px !important; }
+
+    /* Columns */
+    .kanban-col { min-width: 86vw !important; max-width: 86vw !important; }
+
+    /* Modais ocupam quase tudo */
+    .kbn-modal { max-width: 100% !important; max-height: 100vh !important; height: 100%; border-radius: 0 !important; border: 0 !important; }
+    .modal-body-grid-3 { grid-template-columns: 1fr !important; }
+    .modal-padding { padding: 16px !important; }
+
+    /* Dashboard */
+    .dash-title { font-size: 22px !important; }
+    .dash-kpi-card { min-width: 45% !important; padding: 14px !important; }
+    .dash-kpi-value { font-size: 26px !important; }
+    .dash-grid-2 { grid-template-columns: 1fr !important; gap: 12px !important; }
+    .dash-scope-btns { flex-wrap: wrap; }
+
+    /* Search input fica full no drawer */
+    .search-input-wrapper { width: 100% !important; }
+    .search-input-wrapper input { width: 100% !important; }
+  }
+
+  /* Esconde scrollbar no carrossel horizontal no mobile p/ visual mais limpo */
+  @media (max-width: 640px) {
+    .scrollbar-thin::-webkit-scrollbar { height: 0; }
+  }
 </style>
 
 <!-- ============================================================ -->
 <!-- 🔥 CONFIGURAÇÃO DO FIREBASE                                  -->
-<!-- Substitua os valores abaixo pelos do SEU projeto Firebase.   -->
-<!-- Pegue em: console.firebase.google.com → seu projeto →        -->
-<!-- ⚙ Configurações do projeto → Seus apps → Configuração SDK   -->
 <!-- ============================================================ -->
 <script type="module">
   import { initializeApp } from 'https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js';
@@ -185,12 +309,12 @@ const LOGO_DATA_URI = 'data:image/jpeg;base64,/9j/4AAQSkZJRgABAQAAAQABAAD/4gHYSU
 const STORAGE_KEY = 'kanban-sese-state-v1';
 
 const LABEL_COLORS = [
-  { id: 'amber',   name: 'Âmbar',     bg: '#f59e0b' },
-  { id: 'rose',    name: 'Rosa',      bg: '#e11d48' },
-  { id: 'emerald', name: 'Verde',     bg: '#10b981' },
-  { id: 'sky',     name: 'Azul',      bg: '#0ea5e9' },
-  { id: 'violet',  name: 'Violeta',   bg: '#8b5cf6' },
-  { id: 'zinc',    name: 'Cinza',     bg: '#71717a' },
+  { id: 'amber',   name: 'Âmbar',   bg: '#f59e0b' },
+  { id: 'rose',    name: 'Rosa',    bg: '#e11d48' },
+  { id: 'emerald', name: 'Verde',   bg: '#10b981' },
+  { id: 'sky',     name: 'Azul',    bg: '#0ea5e9' },
+  { id: 'violet',  name: 'Violeta', bg: '#8b5cf6' },
+  { id: 'zinc',    name: 'Cinza',   bg: '#71717a' },
 ];
 
 const PRIORITIES = {
@@ -199,18 +323,55 @@ const PRIORITIES = {
   high:   { label: 'Alta',   dot: '#e11d48' },
 };
 
+const PROGRESS_OPTIONS = [
+  { value: 0,   label: '0%',   color: '#3f3f46', track: '#27272a' },
+  { value: 25,  label: '25%',  color: '#f59e0b', track: '#78350f22' },
+  { value: 50,  label: '50%',  color: '#0ea5e9', track: '#0c4a6e22' },
+  { value: 100, label: '100%', color: '#10b981', track: '#064e3b22' },
+];
+
+const DEFAULT_DEPARTMENTS = [
+  { id: 'diretoria',  name: 'Diretoria' },
+  { id: 'ti',         name: 'TI' },
+  { id: 'rh',         name: 'RH' },
+  { id: 'financeiro', name: 'Financeiro' },
+  { id: 'marketing',  name: 'Marketing' },
+  { id: 'operacoes',  name: 'Operações' },
+  { id: 'juridico',   name: 'Jurídico' },
+  { id: 'comercial',  name: 'Comercial' },
+];
+
+const AREA_COLORS = [
+  '#3b5cff','#10b981','#f59e0b','#e11d48','#8b5cf6','#0ea5e9','#ec4899','#14b8a6','#f97316',
+];
+
+const BOARD_COLORS = [
+  '#3b5cff','#6366f1','#8b5cf6','#a855f7','#ec4899','#e11d48','#f43f5e',
+  '#f97316','#f59e0b','#eab308','#84cc16','#22c55e','#10b981','#14b8a6',
+  '#06b6d4','#0ea5e9','#3b82f6','#64748b','#71717a','#525252',
+];
+
 const uid = (prefix = 'id') =>
   `${prefix}_${Date.now().toString(36)}_${Math.random().toString(36).slice(2, 8)}`;
 
 const INITIAL_STATE = () => {
   const boardId = uid('b');
+  const areaId  = uid('a');
   return {
     activeBoardId: boardId,
+    activeAreaId:  areaId,
+    departments: DEFAULT_DEPARTMENTS,
+    areas: [{
+      id: areaId,
+      name: 'Planejamento',
+      color: '#3b5cff',
+      permissions: { view: 'all', edit: 'all' },
+    }],
     boards: [{
-      id: boardId, name: 'Projeto Exemplo', createdAt: Date.now(),
+      id: boardId, name: 'Projeto Exemplo', areaId, color: '#3b5cff', createdAt: Date.now(),
       columns: [
         { id: uid('c'), name: 'Backlog', cards: [
-          { id: uid('card'), title: 'Definir escopo do MVP', description: 'Listar funcionalidades essenciais e cortar o resto pra v2.', labels: ['emerald'], priority: 'high', dueDate: '', assignee: 'Você', createdAt: Date.now() },
+          { id: uid('card'), title: 'Definir escopo do MVP', description: 'Listar funcionalidades essenciais.', labels: ['emerald'], priority: 'high', dueDate: '', assignee: 'Você', createdAt: Date.now() },
           { id: uid('card'), title: 'Pesquisa de concorrentes', description: '', labels: ['sky'], priority: 'low', dueDate: '', assignee: '', createdAt: Date.now() },
         ]},
         { id: uid('c'), name: 'Em andamento', cards: [
@@ -228,11 +389,11 @@ const INITIAL_STATE = () => {
 // ============================================================
 // STORAGE (Firebase Firestore)
 // ============================================================
-const CLIENT_ID = uid('client'); // identificador único deste cliente nesta sessão
-const FB_DOC_PATH = ['kanbans', 'main']; // todo o time aponta pro mesmo documento
+const CLIENT_ID = uid('client');
+const FB_DOC_PATH = ['kanbans', 'main'];
 
 // ============================================================
-// ÍCONES (SVG inline)
+// ÍCONES
 // ============================================================
 const Svg = ({ size = 16, children, style, className }) => (
   <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor"
@@ -254,9 +415,29 @@ const AlertCircle = (p) => <Svg {...p}><circle cx="12" cy="12" r="10"/><line x1=
 const Loader2 = (p) => <Svg {...p}><path d="M21 12a9 9 0 1 1-6.219-8.56"/></Svg>;
 const Download= (p) => <Svg {...p}><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></Svg>;
 const Upload  = (p) => <Svg {...p}><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></Svg>;
+const Shield  = (p) => <Svg {...p}><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></Svg>;
+const EyeIcon = (p) => <Svg {...p}><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></Svg>;
+const PenIcon = (p) => <Svg {...p}><path d="M12 20h9"/><path d="M16.5 3.5a2.121 2.121 0 0 1 3 3L7 19l-4 1 1-4L16.5 3.5z"/></Svg>;
+const GlobeIcon=(p) => <Svg {...p}><circle cx="12" cy="12" r="10"/><line x1="2" y1="12" x2="22" y2="12"/><path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z"/></Svg>;
+const FolderIcon=(p)=> <Svg {...p}><path d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z"/></Svg>;
+const Settings= (p) => <Svg {...p}><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83-2.83l.06-.06A1.65 1.65 0 0 0 4.68 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 2.83-2.83l.06.06A1.65 1.65 0 0 0 9 4.68a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/></Svg>;
+const BarChart2=(p)=> <Svg {...p}><line x1="18" y1="20" x2="18" y2="10"/><line x1="12" y1="20" x2="12" y2="4"/><line x1="6" y1="20" x2="6" y2="14"/><line x1="2" y1="20" x2="22" y2="20"/></Svg>;
+const TrendUp = (p)=> <Svg {...p}><polyline points="23 6 13.5 15.5 8.5 10.5 1 18"/><polyline points="17 6 23 6 23 12"/></Svg>;
+const Menu     = (p) => <Svg {...p}><line x1="3" y1="6" x2="21" y2="6"/><line x1="3" y1="12" x2="21" y2="12"/><line x1="3" y1="18" x2="21" y2="18"/></Svg>;
+const Smartphone = (p) => <Svg {...p}><rect x="5" y="2" width="14" height="20" rx="2" ry="2"/><line x1="12" y1="18" x2="12.01" y2="18"/></Svg>;
 
 // ============================================================
-// SUB-COMPONENTES
+// HELPERS
+// ============================================================
+function permLabel(perm, departments) {
+  if (perm === 'all') return 'Todos';
+  if (!Array.isArray(perm) || perm.length === 0) return 'Nenhum';
+  const names = departments.filter(d => perm.includes(d.id)).map(d => d.name);
+  return names.length > 2 ? names.slice(0, 2).join(', ') + ` +${names.length - 2}` : names.join(', ');
+}
+
+// ============================================================
+// SUB-COMPONENTES BASE
 // ============================================================
 function LabelTag({ colorId, onRemove }) {
   const c = LABEL_COLORS.find(l => l.id === colorId);
@@ -282,14 +463,13 @@ function PriorityDot({ priority }) {
 function Card({ card, onClick, onDragStart, onDragEnd, isDragging }) {
   const dueOverdue = card.dueDate && new Date(card.dueDate) < new Date(new Date().toDateString());
   const [hover, setHover] = useState(false);
+  const progress = card.progress ?? 0;
+  const progOpt  = PROGRESS_OPTIONS.find(p => p.value === progress) || PROGRESS_OPTIONS[0];
   return (
     <div draggable onDragStart={onDragStart} onDragEnd={onDragEnd} onClick={onClick}
       onMouseEnter={() => setHover(true)} onMouseLeave={() => setHover(false)}
       className={`fade-in ${isDragging ? 'card-dragging' : ''}`}
-      style={{
-        background: 'var(--surface)', border: `1px solid ${hover ? '#3f3f46' : 'var(--border)'}`,
-        borderRadius: 8, padding: 12, cursor: 'grab', transition: 'border-color 0.12s',
-      }}>
+      style={{ background: 'var(--surface)', border: `1px solid ${hover ? '#3f3f46' : 'var(--border)'}`, borderRadius: 8, padding: 12, cursor: 'grab', transition: 'border-color 0.12s', overflow: 'hidden' }}>
       {card.labels?.length > 0 && (
         <div className="flex flex-wrap gap-1" style={{ marginBottom: 8 }}>
           {card.labels.map(l => <LabelTag key={l} colorId={l} />)}
@@ -301,7 +481,19 @@ function Card({ card, onClick, onDragStart, onDragEnd, isDragging }) {
           {card.description.length > 80 ? card.description.slice(0, 80) + '…' : card.description}
         </div>
       )}
-      <div className="flex items-center justify-between" style={{ gap: 8, marginTop: 10, paddingTop: 10, borderTop: '1px solid var(--border-soft)' }}>
+
+      {/* Progress bar */}
+      <div style={{ marginTop: 10 }}>
+        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 4 }}>
+          <span style={{ fontSize: 10, color: 'var(--text-faint)', fontWeight: 500 }}>Progresso</span>
+          <span style={{ fontSize: 10, fontWeight: 600, color: progOpt.color }}>{progOpt.label}</span>
+        </div>
+        <div style={{ height: 4, borderRadius: 4, background: 'var(--border)', overflow: 'hidden' }}>
+          <div style={{ height: '100%', width: `${progress}%`, background: progOpt.color, borderRadius: 4, transition: 'width 0.3s ease' }} />
+        </div>
+      </div>
+
+      <div className="flex items-center justify-between" style={{ gap: 8, marginTop: 10, paddingTop: 8, borderTop: '1px solid var(--border-soft)' }}>
         <div className="flex items-center flex-wrap" style={{ gap: 10 }}>
           {card.priority && card.priority !== 'low' && <PriorityDot priority={card.priority} />}
           {card.dueDate && (
@@ -312,8 +504,7 @@ function Card({ card, onClick, onDragStart, onDragEnd, isDragging }) {
           )}
         </div>
         {card.assignee && (
-          <div title={card.assignee}
-            style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 10, fontWeight: 500, borderRadius: '50%', width: 22, height: 22, background: 'var(--bg-soft)', color: 'var(--text-dim)', border: '1px solid var(--border)' }}>
+          <div title={card.assignee} style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 10, fontWeight: 500, borderRadius: '50%', width: 22, height: 22, background: 'var(--bg-soft)', color: 'var(--text-dim)', border: '1px solid var(--border)' }}>
             {card.assignee.slice(0, 2).toUpperCase()}
           </div>
         )}
@@ -339,8 +530,7 @@ function Column({ column, onAddCard, onRenameColumn, onDeleteColumn, onCardClick
     const t = newCardTitle.trim();
     if (!t) { setIsAdding(false); return; }
     onAddCard(column.id, t);
-    setNewCardTitle('');
-    setIsAdding(false);
+    setNewCardTitle(''); setIsAdding(false);
   };
   const submitRename = () => {
     const n = nameValue.trim();
@@ -352,8 +542,8 @@ function Column({ column, onAddCard, onRenameColumn, onDeleteColumn, onCardClick
   return (
     <div onDragOver={(e) => { e.preventDefault(); onDragOverColumn(column.id); }}
          onDrop={(e) => { e.preventDefault(); onDropOnColumn(column.id); }}
-         className={`flex flex-col rounded-lg ${isDropTarget ? 'column-drop-active' : ''}`}
-         style={{ background: 'var(--bg-soft)', border: '1px solid var(--border-soft)', minWidth: 290, maxWidth: 290, height: 'fit-content', maxHeight: 'calc(100vh - 180px)', transition: 'background 0.15s' }}>
+         className={`kanban-col flex flex-col rounded-lg ${isDropTarget ? 'column-drop-active' : ''}`}
+         style={{ background: 'var(--bg-soft)', border: '1px solid var(--border-soft)', minWidth: 290, maxWidth: 290, height: 'fit-content', maxHeight: 'calc(100vh - 180px)', transition: 'background 0.15s', flexShrink: 0 }}>
       <div className="flex items-center justify-between" style={{ padding: '12px 12px 8px' }}>
         <div className="flex items-center gap-2 flex-1 min-w-0">
           {editingName ? (
@@ -379,13 +569,11 @@ function Column({ column, onAddCard, onRenameColumn, onDeleteColumn, onCardClick
             <>
               <div className="fixed inset-0 z-10" onClick={() => setMenuOpen(false)} />
               <div className="absolute fade-in" style={{ right: 0, top: 28, zIndex: 20, background: 'var(--surface)', border: '1px solid var(--border)', minWidth: 150, borderRadius: 6, padding: '4px 0', boxShadow: '0 10px 30px rgba(0,0,0,0.4)' }}>
-                <button onClick={() => { setEditingName(true); setMenuOpen(false); }}
-                  className="hover-bg"
+                <button onClick={() => { setEditingName(true); setMenuOpen(false); }} className="hover-bg"
                   style={{ width: '100%', textAlign: 'left', padding: '6px 12px', fontSize: 13, color: 'var(--text-dim)', background: 'none', border: 'none', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 8 }}>
                   <Edit3 size={12} /> Renomear
                 </button>
-                <button onClick={() => { onDeleteColumn(column.id); setMenuOpen(false); }}
-                  className="hover-bg"
+                <button onClick={() => { onDeleteColumn(column.id); setMenuOpen(false); }} className="hover-bg"
                   style={{ width: '100%', textAlign: 'left', padding: '6px 12px', fontSize: 13, color: 'var(--danger)', background: 'none', border: 'none', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 8 }}>
                   <Trash2 size={12} /> Excluir coluna
                 </button>
@@ -415,10 +603,7 @@ function Column({ column, onAddCard, onRenameColumn, onDeleteColumn, onCardClick
             <textarea autoFocus className="kbn" style={{ resize: 'none', minHeight: 60, fontSize: 13 }}
               placeholder="Título do card…" value={newCardTitle}
               onChange={e => setNewCardTitle(e.target.value)}
-              onKeyDown={e => {
-                if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); submitNewCard(); }
-                if (e.key === 'Escape') setIsAdding(false);
-              }} />
+              onKeyDown={e => { if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); submitNewCard(); } if (e.key === 'Escape') setIsAdding(false); }} />
             <div className="flex items-center gap-2">
               <button className="btn btn-primary" onClick={submitNewCard}><Check size={13} /> Adicionar</button>
               <button className="btn btn-ghost" onClick={() => { setIsAdding(false); setNewCardTitle(''); }}><X size={13} /></button>
@@ -452,7 +637,7 @@ function CardModal({ card, columnId, columns, onSave, onDelete, onClose, onMove 
     <div className="fixed inset-0 z-50 flex items-center justify-center"
          style={{ padding: 16, background: 'rgba(0,0,0,0.7)', backdropFilter: 'blur(4px)' }}
          onClick={onClose}>
-      <div className="modal-in flex flex-col"
+      <div className="kbn-modal modal-in flex flex-col"
         style={{ background: 'var(--bg-soft)', border: '1px solid var(--border)', width: '100%', maxWidth: 580, maxHeight: '90vh', borderRadius: 12, boxShadow: '0 20px 60px rgba(0,0,0,0.5)' }}
         onClick={e => e.stopPropagation()}>
         <div className="flex items-start justify-between" style={{ padding: '20px 20px 12px', borderBottom: '1px solid var(--border-soft)' }}>
@@ -462,7 +647,7 @@ function CardModal({ card, columnId, columns, onSave, onDelete, onClose, onMove 
           <button onClick={onClose} className="btn btn-ghost" style={{ padding: 6 }}><X size={16} /></button>
         </div>
 
-        <div className="overflow-y-auto scrollbar-thin flex flex-col gap-4" style={{ padding: 20 }}>
+        <div className="modal-padding overflow-y-auto scrollbar-thin flex flex-col gap-4" style={{ padding: 20 }}>
           <div>
             <label style={{ fontSize: 11, textTransform: 'uppercase', letterSpacing: '0.08em', fontWeight: 500, display: 'block', marginBottom: 6, color: 'var(--text-faint)' }}>Status (coluna)</label>
             <select className="kbn" value={columnId} onChange={e => onMove(card.id, columnId, e.target.value)}>
@@ -483,8 +668,7 @@ function CardModal({ card, columnId, columns, onSave, onDelete, onClose, onMove 
                 return (
                   <button key={l.id} onClick={() => toggleLabel(l.id)}
                     style={{ padding: '4px 10px', borderRadius: 4, fontSize: 11, fontWeight: 500, cursor: 'pointer', transition: 'all 0.12s',
-                      background: active ? l.bg : l.bg + '15',
-                      color: active ? '#0a0a0b' : l.bg,
+                      background: active ? l.bg : l.bg + '15', color: active ? '#0a0a0b' : l.bg,
                       border: `1px solid ${l.bg}${active ? 'ff' : '40'}` }}>
                     {l.name}
                   </button>
@@ -492,7 +676,7 @@ function CardModal({ card, columnId, columns, onSave, onDelete, onClose, onMove 
               })}
             </div>
           </div>
-          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: 12 }}>
+          <div className="modal-body-grid-3" style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: 12 }}>
             <div>
               <label style={{ fontSize: 11, textTransform: 'uppercase', letterSpacing: '0.08em', fontWeight: 500, display: 'block', marginBottom: 6, color: 'var(--text-faint)' }}>Prioridade</label>
               <select className="kbn" value={draft.priority || 'low'} onChange={e => setDraft({ ...draft, priority: e.target.value })}>
@@ -506,6 +690,28 @@ function CardModal({ card, columnId, columns, onSave, onDelete, onClose, onMove 
             <div>
               <label style={{ fontSize: 11, textTransform: 'uppercase', letterSpacing: '0.08em', fontWeight: 500, display: 'block', marginBottom: 6, color: 'var(--text-faint)' }}>Prazo</label>
               <input type="date" className="kbn" value={draft.dueDate || ''} onChange={e => setDraft({ ...draft, dueDate: e.target.value })} />
+            </div>
+          </div>
+          {/* Progress selector */}
+          <div>
+            <label style={{ fontSize: 11, textTransform: 'uppercase', letterSpacing: '0.08em', fontWeight: 500, display: 'block', marginBottom: 10, color: 'var(--text-faint)' }}>% Progresso</label>
+            {/* Bar preview */}
+            <div style={{ height: 6, borderRadius: 6, background: 'var(--border)', overflow: 'hidden', marginBottom: 12 }}>
+              <div style={{ height: '100%', width: `${draft.progress ?? 0}%`, background: PROGRESS_OPTIONS.find(p => p.value === (draft.progress ?? 0))?.color || '#3f3f46', borderRadius: 6, transition: 'width 0.25s ease, background 0.25s ease' }} />
+            </div>
+            <div className="flex gap-3">
+              {PROGRESS_OPTIONS.map(p => {
+                const active = (draft.progress ?? 0) === p.value;
+                return (
+                  <button key={p.value} onClick={() => setDraft({ ...draft, progress: p.value })}
+                    style={{ flex: 1, padding: '8px 0', borderRadius: 8, fontSize: 13, fontWeight: 700, cursor: 'pointer', transition: 'all 0.14s',
+                      background: active ? p.color : p.color + '18',
+                      color: active ? (p.value === 0 ? 'var(--text-dim)' : '#fff') : p.color,
+                      border: `2px solid ${active ? p.color : p.color + '44'}` }}>
+                    {p.label}
+                  </button>
+                );
+              })}
             </div>
           </div>
         </div>
@@ -524,11 +730,226 @@ function CardModal({ card, columnId, columns, onSave, onDelete, onClose, onMove 
   );
 }
 
-function BoardSwitcher({ boards, activeBoardId, onSelect, onCreate, onDelete }) {
+// ============================================================
+// PERMISSIONS PANEL — exibido no canto do board
+// ============================================================
+function PermissionsPanel({ area, departments, onEdit }) {
+  const viewLabel = permLabel(area.permissions.view, departments);
+  const editLabel = permLabel(area.permissions.edit, departments);
+  const isRestricted = area.permissions.view !== 'all' || area.permissions.edit !== 'all';
+
+  return (
+    <div className="perm-panel fade-in"
+      style={{ background: 'var(--surface)', border: `1px solid ${isRestricted ? area.color + '66' : 'var(--border)'}`, borderRadius: 10, padding: '10px 14px', minWidth: 220, flexShrink: 0 }}>
+      {/* Area title row */}
+      <div className="flex items-center justify-between" style={{ marginBottom: 8 }}>
+        <div className="flex items-center gap-2">
+          <span style={{ width: 8, height: 8, borderRadius: '50%', background: area.color, flexShrink: 0 }} />
+          <span style={{ fontSize: 12, fontWeight: 600, color: 'var(--text)' }}>{area.name}</span>
+        </div>
+        <button onClick={onEdit} title="Configurar acesso"
+          className="btn btn-ghost" style={{ padding: '3px 6px', fontSize: 11, color: 'var(--text-faint)' }}>
+          <Settings size={12} /> Acesso
+        </button>
+      </div>
+
+      {/* View row */}
+      <div className="flex items-center gap-2" style={{ marginBottom: 5 }}>
+        <div className="flex items-center gap-1" style={{ color: area.permissions.view === 'all' ? '#10b981' : '#0ea5e9', minWidth: 14 }}>
+          {area.permissions.view === 'all' ? <GlobeIcon size={12} /> : <EyeIcon size={12} />}
+        </div>
+        <span style={{ fontSize: 11, color: 'var(--text-faint)', minWidth: 60 }}>Visualizar</span>
+        <span style={{ fontSize: 11, fontWeight: 500, color: 'var(--text-dim)',
+          background: area.permissions.view === 'all' ? 'rgba(16,185,129,0.1)' : 'rgba(14,165,233,0.1)',
+          padding: '1px 7px', borderRadius: 20, border: `1px solid ${area.permissions.view === 'all' ? 'rgba(16,185,129,0.25)' : 'rgba(14,165,233,0.25)'}` }}>
+          {viewLabel}
+        </span>
+      </div>
+
+      {/* Edit row */}
+      <div className="flex items-center gap-2">
+        <div className="flex items-center gap-1" style={{ color: area.permissions.edit === 'all' ? '#f59e0b' : '#e11d48', minWidth: 14 }}>
+          <PenIcon size={12} />
+        </div>
+        <span style={{ fontSize: 11, color: 'var(--text-faint)', minWidth: 60 }}>Editar</span>
+        <span style={{ fontSize: 11, fontWeight: 500, color: 'var(--text-dim)',
+          background: area.permissions.edit === 'all' ? 'rgba(245,158,11,0.1)' : 'rgba(225,29,72,0.1)',
+          padding: '1px 7px', borderRadius: 20, border: `1px solid ${area.permissions.edit === 'all' ? 'rgba(245,158,11,0.25)' : 'rgba(225,29,72,0.25)'}` }}>
+          {editLabel}
+        </span>
+      </div>
+    </div>
+  );
+}
+
+// ============================================================
+// AREA SETTINGS MODAL
+// ============================================================
+function AreaSettingsModal({ area, departments, onSave, onClose, onDelete, canDelete }) {
+  const [name,      setName]      = useState(area.name);
+  const [color,     setColor]     = useState(area.color);
+  const [viewMode,  setViewMode]  = useState(area.permissions.view === 'all' ? 'all' : 'specific');
+  const [viewDepts, setViewDepts] = useState(area.permissions.view === 'all' ? [] : (area.permissions.view || []));
+  const [editMode,  setEditMode]  = useState(area.permissions.edit === 'all' ? 'all' : 'specific');
+  const [editDepts, setEditDepts] = useState(area.permissions.edit === 'all' ? [] : (area.permissions.edit || []));
+  const [tab, setTab] = useState('geral'); // 'geral' | 'acesso'
+
+  const toggleDept = (setter, current, deptId) => {
+    setter(current.includes(deptId) ? current.filter(id => id !== deptId) : [...current, deptId]);
+  };
+
+  const handleSave = () => {
+    if (!name.trim()) return;
+    onSave({
+      ...area,
+      name: name.trim(),
+      color,
+      permissions: {
+        view: viewMode === 'all' ? 'all' : viewDepts,
+        edit: editMode === 'all' ? 'all' : editDepts,
+      }
+    });
+  };
+
+  const DeptSelector = ({ mode, setMode, depts, setDepts, accentColor, label }) => (
+    <div>
+      <div style={{ fontSize: 11, textTransform: 'uppercase', letterSpacing: '0.08em', fontWeight: 600, color: 'var(--text-faint)', marginBottom: 10 }}>{label}</div>
+      {/* Mode toggles */}
+      <div className="flex gap-2" style={{ marginBottom: 10 }}>
+        {[['all','Todos'], ['specific','Específico']].map(([val, lbl]) => (
+          <button key={val} onClick={() => setMode(val)}
+            style={{ padding: '5px 14px', borderRadius: 20, fontSize: 12, fontWeight: 500, cursor: 'pointer', border: '1px solid',
+              background: mode === val ? accentColor : 'transparent',
+              borderColor: mode === val ? accentColor : 'var(--border)',
+              color: mode === val ? '#fff' : 'var(--text-dim)', transition: 'all 0.12s' }}>
+            {val === 'all' && <span style={{ marginRight: 4 }}>🌐</span>}{lbl}
+          </button>
+        ))}
+      </div>
+
+      {/* Department chips */}
+      {mode === 'specific' && (
+        <div className="flex flex-wrap gap-2" style={{ marginTop: 4 }}>
+          {departments.map(d => {
+            const active = depts.includes(d.id);
+            return (
+              <button key={d.id} onClick={() => toggleDept(setDepts, depts, d.id)}
+                className={`dept-chip ${active ? 'active' : ''}`}
+                style={active ? { background: accentColor, color: '#fff', borderColor: accentColor } : {}}>
+                {d.name}
+              </button>
+            );
+          })}
+          {depts.length === 0 && (
+            <span style={{ fontSize: 11, color: 'var(--text-faint)', padding: '4px 0' }}>Selecione ao menos um departamento.</span>
+          )}
+        </div>
+      )}
+    </div>
+  );
+
+  return (
+    <div className="fixed inset-0 z-50 flex items-center justify-center"
+         style={{ padding: 16, background: 'rgba(0,0,0,0.75)', backdropFilter: 'blur(4px)' }}
+         onClick={onClose}>
+      <div className="kbn-modal modal-in flex flex-col"
+           style={{ background: 'var(--bg-soft)', border: '1px solid var(--border)', width: '100%', maxWidth: 520, maxHeight: '90vh', borderRadius: 14, boxShadow: '0 24px 64px rgba(0,0,0,0.6)' }}
+           onClick={e => e.stopPropagation()}>
+
+        {/* Header */}
+        <div className="flex items-center justify-between" style={{ padding: '18px 20px 0' }}>
+          <div className="flex items-center gap-2">
+            <span style={{ width: 10, height: 10, borderRadius: '50%', background: color }} />
+            <span className="font-display" style={{ fontSize: 16, fontWeight: 600 }}>Configurar área</span>
+          </div>
+          <button onClick={onClose} className="btn btn-ghost" style={{ padding: 6 }}><X size={16} /></button>
+        </div>
+
+        {/* Tabs */}
+        <div className="flex" style={{ padding: '12px 20px 0', gap: 4, borderBottom: '1px solid var(--border-soft)', marginTop: 8 }}>
+          {[['geral','Geral'], ['acesso','Controle de Acesso']].map(([t, lbl]) => (
+            <button key={t} onClick={() => setTab(t)}
+              style={{ padding: '6px 14px', fontSize: 13, fontWeight: 500, background: 'none', border: 'none', cursor: 'pointer',
+                color: tab === t ? 'var(--text)' : 'var(--text-faint)',
+                borderBottom: tab === t ? `2px solid ${color}` : '2px solid transparent',
+                marginBottom: -1, transition: 'color 0.12s' }}>
+              {lbl}
+            </button>
+          ))}
+        </div>
+
+        {/* Body */}
+        <div className="overflow-y-auto scrollbar-thin flex flex-col gap-5" style={{ padding: 20 }}>
+          {tab === 'geral' && (
+            <>
+              <div>
+                <label style={{ fontSize: 11, textTransform: 'uppercase', letterSpacing: '0.08em', fontWeight: 600, display: 'block', marginBottom: 8, color: 'var(--text-faint)' }}>Nome da área</label>
+                <input className="kbn" value={name} onChange={e => setName(e.target.value)} placeholder="Ex: Planejamento, Operações…" />
+              </div>
+              <div>
+                <label style={{ fontSize: 11, textTransform: 'uppercase', letterSpacing: '0.08em', fontWeight: 600, display: 'block', marginBottom: 10, color: 'var(--text-faint)' }}>Cor da área</label>
+                <div className="flex flex-wrap gap-2">
+                  {AREA_COLORS.map(c => (
+                    <button key={c} onClick={() => setColor(c)}
+                      style={{ width: 30, height: 30, borderRadius: '50%', background: c, border: color === c ? '3px solid #fff' : '3px solid transparent', cursor: 'pointer', outline: color === c ? `3px solid ${c}` : 'none', transition: 'all 0.12s' }} />
+                  ))}
+                </div>
+              </div>
+            </>
+          )}
+
+          {tab === 'acesso' && (
+            <>
+              <div style={{ background: 'var(--surface)', borderRadius: 8, padding: 14, border: '1px solid var(--border-soft)', fontSize: 12, color: 'var(--text-dim)', lineHeight: 1.6 }}>
+                <strong style={{ color: 'var(--accent)' }}>ℹ Como funciona:</strong> Defina quais departamentos podem <em>ver</em> os boards desta área e quais podem <em>editar</em> (criar/mover/excluir cards). Selecione "Todos" para acesso irrestrito.
+              </div>
+
+              <DeptSelector
+                label="👁 Quem pode VISUALIZAR?"
+                mode={viewMode} setMode={setViewMode}
+                depts={viewDepts} setDepts={setViewDepts}
+                accentColor="#10b981" />
+
+              <div style={{ height: 1, background: 'var(--border-soft)' }} />
+
+              <DeptSelector
+                label="✏ Quem pode EDITAR?"
+                mode={editMode} setMode={setEditMode}
+                depts={editDepts} setDepts={setEditDepts}
+                accentColor="#f59e0b" />
+            </>
+          )}
+        </div>
+
+        {/* Footer */}
+        <div className="flex items-center justify-between" style={{ padding: '12px 20px', borderTop: '1px solid var(--border-soft)' }}>
+          {canDelete ? (
+            <button className="btn btn-danger" onClick={() => { if (confirm(`Excluir a área "${area.name}" e todos os boards dela?`)) { onDelete(area.id); onClose(); } }}>
+              <Trash2 size={13} /> Excluir área
+            </button>
+          ) : <div />}
+          <div className="flex gap-2">
+            <button className="btn btn-ghost" onClick={onClose}>Cancelar</button>
+            <button className="btn btn-primary" onClick={handleSave}
+              style={{ background: color }}
+              disabled={!name.trim()}>
+              <Check size={13} /> Salvar
+            </button>
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+// ============================================================
+// AREA SWITCHER
+// ============================================================
+function AreaSwitcher({ areas, activeAreaId, onSelect, onCreate, onEditArea }) {
   const [open, setOpen] = useState(false);
   const [creating, setCreating] = useState(false);
   const [newName, setNewName] = useState('');
-  const active = boards.find(b => b.id === activeBoardId);
+  const active = areas.find(a => a.id === activeAreaId);
 
   const submit = () => {
     const n = newName.trim();
@@ -538,32 +959,185 @@ function BoardSwitcher({ boards, activeBoardId, onSelect, onCreate, onDelete }) 
   return (
     <div className="relative">
       <button onClick={() => setOpen(!open)} className="btn btn-outline" style={{ padding: '7px 14px' }}>
+        {active && <span style={{ width: 8, height: 8, borderRadius: '50%', background: active.color }} />}
+        <FolderIcon size={13} />
+        <span className="truncate" style={{ maxWidth: 160 }}>{active?.name || 'Sem área'}</span>
+        <ChevronDown size={13} style={{ opacity: 0.6 }} />
+      </button>
+      {open && (
+        <>
+          <div className="fixed inset-0 z-10" onClick={() => { setOpen(false); setCreating(false); }} />
+          <div className="absolute fade-in" style={{ left: 0, top: 44, zIndex: 20, background: 'var(--surface)', border: '1px solid var(--border)', minWidth: 260, borderRadius: 8, padding: '6px 0', boxShadow: '0 20px 50px rgba(0,0,0,0.5)' }}>
+            <div style={{ padding: '4px 12px 6px', fontSize: 10, textTransform: 'uppercase', letterSpacing: '0.08em', fontWeight: 500, color: 'var(--text-faint)' }}>Áreas</div>
+            {areas.map(a => (
+              <div key={a.id} className="flex items-center hover-row">
+                <button onClick={() => { onSelect(a.id); setOpen(false); }}
+                  className="flex-1 hover-bg"
+                  style={{ textAlign: 'left', padding: '7px 12px', fontSize: 13, background: 'none', border: 'none', cursor: 'pointer', color: a.id === activeAreaId ? 'var(--text)' : 'var(--text-dim)', display: 'flex', alignItems: 'center', gap: 8 }}>
+                  <span style={{ width: 8, height: 8, borderRadius: '50%', background: a.color, flexShrink: 0 }} />
+                  <span className="truncate flex-1">{a.name}</span>
+                  {a.id === activeAreaId && <Check size={12} style={{ color: a.color }} />}
+                </button>
+                <button onClick={(e) => { e.stopPropagation(); onEditArea(a); setOpen(false); }}
+                  className="row-action btn btn-ghost" style={{ padding: '4px 8px' }}>
+                  <Settings size={12} />
+                </button>
+              </div>
+            ))}
+            <div style={{ height: 1, background: 'var(--border-soft)', margin: '4px 0' }} />
+            {creating ? (
+              <div className="flex items-center gap-1" style={{ padding: '6px 8px' }}>
+                <input autoFocus className="kbn" style={{ padding: '4px 8px', fontSize: 13 }}
+                  placeholder="Nome da área…" value={newName} onChange={e => setNewName(e.target.value)}
+                  onKeyDown={e => { if (e.key === 'Enter') submit(); if (e.key === 'Escape') { setCreating(false); setNewName(''); } }} />
+                <button className="btn btn-primary" style={{ padding: 6 }} onClick={submit}><Check size={12} /></button>
+              </div>
+            ) : (
+              <button onClick={() => setCreating(true)} className="hover-bg"
+                style={{ width: '100%', textAlign: 'left', padding: '6px 12px', fontSize: 13, background: 'none', border: 'none', cursor: 'pointer', color: 'var(--text)', display: 'flex', alignItems: 'center', gap: 8 }}>
+                <Plus size={12} /> Nova área
+              </button>
+            )}
+          </div>
+        </>
+      )}
+    </div>
+  );
+}
+
+// ============================================================
+// BOARD SETTINGS MODAL — nome + cor do board
+// ============================================================
+function BoardSettingsModal({ board, onSave, onClose, onDelete, canDelete }) {
+  const [name, setName] = useState(board.name);
+  const [color, setColor] = useState(board.color || '#3b5cff');
+
+  const handleSave = () => {
+    if (!name.trim()) return;
+    onSave({ ...board, name: name.trim(), color });
+  };
+
+  return (
+    <div className="fixed inset-0 z-50 flex items-center justify-center"
+         style={{ padding: 16, background: 'rgba(0,0,0,0.75)', backdropFilter: 'blur(4px)' }}
+         onClick={onClose}>
+      <div className="kbn-modal modal-in flex flex-col"
+           style={{ background: 'var(--bg-soft)', border: '1px solid var(--border)', width: '100%', maxWidth: 480, maxHeight: '90vh', borderRadius: 14, boxShadow: '0 24px 64px rgba(0,0,0,0.6)' }}
+           onClick={e => e.stopPropagation()}>
+
+        {/* Header */}
+        <div className="flex items-center justify-between" style={{ padding: '18px 20px 14px', borderBottom: '1px solid var(--border-soft)' }}>
+          <div className="flex items-center gap-2">
+            <span style={{ width: 12, height: 12, borderRadius: '50%', background: color, transition: 'background 0.2s' }} />
+            <span className="font-display" style={{ fontSize: 16, fontWeight: 600 }}>Configurar board</span>
+          </div>
+          <button onClick={onClose} className="btn btn-ghost" style={{ padding: 6 }}><X size={16} /></button>
+        </div>
+
+        {/* Body */}
+        <div className="modal-padding overflow-y-auto scrollbar-thin flex flex-col gap-5" style={{ padding: 20 }}>
+          <div>
+            <label style={{ fontSize: 11, textTransform: 'uppercase', letterSpacing: '0.08em', fontWeight: 600, display: 'block', marginBottom: 8, color: 'var(--text-faint)' }}>Nome do board</label>
+            <input className="kbn" value={name} onChange={e => setName(e.target.value)}
+              placeholder="Ex: Sprint 24, Roadmap Q1…"
+              onKeyDown={e => { if (e.key === 'Enter' && name.trim()) handleSave(); }} />
+          </div>
+
+          <div>
+            <label style={{ fontSize: 11, textTransform: 'uppercase', letterSpacing: '0.08em', fontWeight: 600, display: 'block', marginBottom: 10, color: 'var(--text-faint)' }}>Cor do board</label>
+            <div className="flex flex-wrap" style={{ gap: 10 }}>
+              {BOARD_COLORS.map(c => (
+                <button key={c} onClick={() => setColor(c)}
+                  aria-label={`Cor ${c}`}
+                  style={{
+                    width: 34, height: 34, borderRadius: '50%', background: c,
+                    border: color === c ? '3px solid #fff' : '3px solid transparent',
+                    cursor: 'pointer',
+                    outline: color === c ? `3px solid ${c}` : 'none',
+                    boxShadow: color === c ? `0 0 0 1px ${c}` : 'none',
+                    transition: 'all 0.12s'
+                  }} />
+              ))}
+            </div>
+            <div style={{ fontSize: 11, color: 'var(--text-faint)', marginTop: 10, lineHeight: 1.5 }}>
+              A cor aparece no seletor de boards, no título e no breadcrumb — facilita identificar boards diferentes da mesma área.
+            </div>
+          </div>
+        </div>
+
+        {/* Footer */}
+        <div className="flex items-center justify-between" style={{ padding: '12px 20px', borderTop: '1px solid var(--border-soft)' }}>
+          {canDelete ? (
+            <button className="btn btn-danger" onClick={() => { if (confirm(`Excluir o board "${board.name}" e todos os cards?`)) { onDelete(board.id); onClose(); } }}>
+              <Trash2 size={13} /> Excluir
+            </button>
+          ) : <div />}
+          <div className="flex gap-2">
+            <button className="btn btn-ghost" onClick={onClose}>Cancelar</button>
+            <button className="btn btn-primary" onClick={() => { handleSave(); onClose(); }}
+              style={{ background: color }}
+              disabled={!name.trim()}>
+              <Check size={13} /> Salvar
+            </button>
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+// ============================================================
+// BOARD SWITCHER (filtrado por área)
+// ============================================================
+function BoardSwitcher({ boards, activeBoardId, activeAreaId, onSelect, onCreate, onDelete, onEditBoard }) {
+  const [open, setOpen] = useState(false);
+  const [creating, setCreating] = useState(false);
+  const [newName, setNewName] = useState('');
+  const areaBoards = boards.filter(b => b.areaId === activeAreaId);
+  const active = areaBoards.find(b => b.id === activeBoardId);
+  const activeColor = active?.color || '#3b5cff';
+
+  const submit = () => {
+    const n = newName.trim();
+    if (n) { onCreate(n); setNewName(''); setCreating(false); setOpen(false); }
+  };
+
+  return (
+    <div className="relative">
+      <button onClick={() => setOpen(!open)} className="btn btn-outline" style={{ padding: '7px 14px' }}>
+        {active && <span style={{ width: 8, height: 8, borderRadius: '50%', background: activeColor, flexShrink: 0 }} />}
         <Layers size={14} />
-        <span className="truncate" style={{ maxWidth: 200 }}>{active?.name || 'Sem board'}</span>
+        <span className="truncate" style={{ maxWidth: 160 }}>{active?.name || 'Sem board'}</span>
         <ChevronDown size={14} style={{ opacity: 0.6 }} />
       </button>
       {open && (
         <>
           <div className="fixed inset-0 z-10" onClick={() => { setOpen(false); setCreating(false); }} />
           <div className="absolute fade-in" style={{ left: 0, top: 44, zIndex: 20, background: 'var(--surface)', border: '1px solid var(--border)', minWidth: 280, borderRadius: 8, padding: '6px 0', boxShadow: '0 20px 50px rgba(0,0,0,0.5)' }}>
-            <div style={{ padding: '4px 12px', fontSize: 10, textTransform: 'uppercase', letterSpacing: '0.08em', fontWeight: 500, color: 'var(--text-faint)' }}>Seus boards</div>
-            {boards.map(b => (
-              <div key={b.id} className="flex items-center hover-row">
-                <button onClick={() => { onSelect(b.id); setOpen(false); }}
-                  className="flex-1 hover-bg"
-                  style={{ textAlign: 'left', padding: '6px 12px', fontSize: 13, background: 'none', border: 'none', cursor: 'pointer', color: b.id === activeBoardId ? 'var(--accent)' : 'var(--text-dim)', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                  <span className="truncate">{b.name}</span>
-                  {b.id === activeBoardId && <Check size={12} />}
-                </button>
-                {boards.length > 1 && (
-                  <button onClick={(e) => { e.stopPropagation(); if (confirm(`Excluir o board "${b.name}" e todos os cards?`)) onDelete(b.id); }}
-                    className="row-action"
-                    style={{ padding: '4px 8px', background: 'none', border: 'none', cursor: 'pointer', color: 'var(--danger)' }}>
-                    <Trash2 size={12} />
+            <div style={{ padding: '4px 12px 6px', fontSize: 10, textTransform: 'uppercase', letterSpacing: '0.08em', fontWeight: 500, color: 'var(--text-faint)' }}>Boards desta área</div>
+            {areaBoards.length === 0 && (
+              <div style={{ padding: '8px 12px', fontSize: 12, color: 'var(--text-faint)' }}>Nenhum board nesta área ainda.</div>
+            )}
+            {areaBoards.map(b => {
+              const c = b.color || '#3b5cff';
+              const isActive = b.id === activeBoardId;
+              return (
+                <div key={b.id} className="flex items-center hover-row">
+                  <button onClick={() => { onSelect(b.id); setOpen(false); }}
+                    className="flex-1 hover-bg"
+                    style={{ textAlign: 'left', padding: '7px 12px', fontSize: 13, background: 'none', border: 'none', cursor: 'pointer', color: isActive ? 'var(--text)' : 'var(--text-dim)', display: 'flex', alignItems: 'center', gap: 8 }}>
+                    <span style={{ width: 10, height: 10, borderRadius: '50%', background: c, flexShrink: 0, boxShadow: isActive ? `0 0 0 2px ${c}33` : 'none' }} />
+                    <span className="truncate flex-1">{b.name}</span>
+                    {isActive && <Check size={12} style={{ color: c }} />}
                   </button>
-                )}
-              </div>
-            ))}
+                  <button onClick={(e) => { e.stopPropagation(); onEditBoard(b); setOpen(false); }}
+                    className="row-action btn btn-ghost" style={{ padding: '4px 8px' }}
+                    title="Configurar (nome e cor)">
+                    <Settings size={12} />
+                  </button>
+                </div>
+              );
+            })}
             <div style={{ height: 1, background: 'var(--border-soft)', margin: '4px 0' }} />
             {creating ? (
               <div className="flex items-center gap-1" style={{ padding: '6px 8px' }}>
@@ -573,8 +1147,7 @@ function BoardSwitcher({ boards, activeBoardId, onSelect, onCreate, onDelete }) 
                 <button className="btn btn-primary" style={{ padding: 6 }} onClick={submit}><Check size={12} /></button>
               </div>
             ) : (
-              <button onClick={() => setCreating(true)}
-                className="hover-bg"
+              <button onClick={() => setCreating(true)} className="hover-bg"
                 style={{ width: '100%', textAlign: 'left', padding: '6px 12px', fontSize: 13, background: 'none', border: 'none', cursor: 'pointer', color: 'var(--text)', display: 'flex', alignItems: 'center', gap: 8 }}>
                 <Plus size={12} /> Novo board
               </button>
@@ -582,6 +1155,195 @@ function BoardSwitcher({ boards, activeBoardId, onSelect, onCreate, onDelete }) 
           </div>
         </>
       )}
+    </div>
+  );
+}
+
+// ============================================================
+// DASHBOARD
+// ============================================================
+function Dashboard({ boards, areas, activeAreaId, activeBoardId }) {
+  const [scope, setScope] = useState('board'); // 'board' | 'area' | 'all'
+
+  const allCards = (() => {
+    let src = boards;
+    if (scope === 'board') src = boards.filter(b => b.id === activeBoardId);
+    else if (scope === 'area') src = boards.filter(b => b.areaId === activeAreaId);
+    return src.flatMap(b => b.columns.flatMap(c => c.cards.map(card => ({ ...card, _col: c.name, _board: b.name, _area: areas.find(a => a.id === b.areaId)?.name }))));
+  })();
+
+  const totalCards = allCards.length;
+  const avgProgress = totalCards > 0 ? Math.round(allCards.reduce((s, c) => s + (c.progress ?? 0), 0) / totalCards) : 0;
+  const done100 = allCards.filter(c => (c.progress ?? 0) === 100).length;
+  const notStarted = allCards.filter(c => (c.progress ?? 0) === 0).length;
+  const inProgress = totalCards - done100 - notStarted;
+
+  // Progress distribution
+  const progDist = PROGRESS_OPTIONS.map(p => ({
+    ...p, count: allCards.filter(c => (c.progress ?? 0) === p.value).length,
+  }));
+
+  // Column distribution (current board scope)
+  const boardForCols = boards.find(b => b.id === activeBoardId);
+  const colDist = (boardForCols?.columns || []).map(c => ({ name: c.name, count: c.cards.length }));
+  const maxCol = Math.max(...colDist.map(c => c.count), 1);
+
+  // Priority distribution
+  const priDist = Object.entries(PRIORITIES).map(([k, v]) => ({
+    key: k, label: v.label, dot: v.dot, count: allCards.filter(c => (c.priority || 'low') === k).length,
+  }));
+
+  // Area breakdown
+  const areaDist = areas.map(a => {
+    const aCards = boards.filter(b => b.areaId === a.id).flatMap(b => b.columns.flatMap(c => c.cards));
+    const avgP = aCards.length > 0 ? Math.round(aCards.reduce((s, c) => s + (c.progress ?? 0), 0) / aCards.length) : 0;
+    return { ...a, count: aCards.length, avgProgress: avgP };
+  });
+
+  const StatCard = ({ label, value, sub, color, icon }) => (
+    <div className="dash-kpi-card" style={{ background: 'var(--surface)', border: '1px solid var(--border)', borderRadius: 12, padding: '18px 20px', flex: 1, minWidth: 140 }}>
+      <div className="flex items-center justify-between" style={{ marginBottom: 10 }}>
+        <span style={{ fontSize: 11, textTransform: 'uppercase', letterSpacing: '0.08em', fontWeight: 500, color: 'var(--text-faint)' }}>{label}</span>
+        <span style={{ color }}>{icon}</span>
+      </div>
+      <div className="dash-kpi-value" style={{ fontSize: 32, fontWeight: 700, color, lineHeight: 1, marginBottom: 4 }}>{value}</div>
+      {sub && <div style={{ fontSize: 11, color: 'var(--text-faint)' }}>{sub}</div>}
+    </div>
+  );
+
+  const activeArea = areas.find(a => a.id === activeAreaId);
+
+  return (
+    <div className="fade-in" style={{ maxWidth: 1200 }}>
+      {/* Header */}
+      <div className="flex items-center justify-between flex-wrap" style={{ marginBottom: 20, gap: 12 }}>
+        <div>
+          <h1 className="dash-title font-display" style={{ fontSize: 26, fontWeight: 700, letterSpacing: '-0.02em' }}>Dashboard</h1>
+          <div className="flex items-center gap-1" style={{ marginTop: 3 }}>
+            <span style={{ width: 6, height: 6, borderRadius: '50%', background: activeArea?.color || 'var(--accent)' }} />
+            <span style={{ fontSize: 11, color: 'var(--text-faint)' }}>{activeArea?.name}</span>
+          </div>
+        </div>
+        {/* Scope selector */}
+        <div className="dash-scope-btns flex gap-2">
+          {[['board','Este board'],['area','Esta área'],['all','Todos']].map(([s, lbl]) => (
+            <button key={s} onClick={() => setScope(s)}
+              style={{ padding: '6px 14px', borderRadius: 20, fontSize: 12, fontWeight: 500, cursor: 'pointer',
+                background: scope === s ? 'var(--accent)' : 'transparent',
+                color: scope === s ? '#fff' : 'var(--text-dim)',
+                border: `1px solid ${scope === s ? 'var(--accent)' : 'var(--border)'}`, transition: 'all 0.12s' }}>
+              {lbl}
+            </button>
+          ))}
+        </div>
+      </div>
+
+      {/* KPI Row */}
+      <div className="flex gap-3" style={{ marginBottom: 20, flexWrap: 'wrap' }}>
+        <StatCard label="Total de Cards" value={totalCards} sub="neste escopo" color="var(--text)" icon={<Layers size={16} />} />
+        <StatCard label="Progresso Médio" value={`${avgProgress}%`} sub="média geral dos cards"
+          color={avgProgress === 100 ? '#10b981' : avgProgress >= 50 ? '#0ea5e9' : avgProgress > 0 ? '#f59e0b' : 'var(--text-dim)'}
+          icon={<TrendUp size={16} />} />
+        <StatCard label="Concluídos" value={done100} sub={`${totalCards > 0 ? Math.round(done100/totalCards*100) : 0}% do total`} color="#10b981" icon={<Check size={16} />} />
+        <StatCard label="Em Andamento" value={inProgress} sub="entre 25% e 75%" color="#0ea5e9" icon={<BarChart2 size={16} />} />
+        <StatCard label="Não Iniciados" value={notStarted} sub="progresso em 0%" color="var(--text-faint)" icon={<AlertCircle size={16} />} />
+      </div>
+
+      {/* Main progress bar */}
+      <div style={{ background: 'var(--surface)', border: '1px solid var(--border)', borderRadius: 12, padding: '18px 20px', marginBottom: 20 }}>
+        <div className="flex items-center justify-between" style={{ marginBottom: 12 }}>
+          <span style={{ fontSize: 13, fontWeight: 600, color: 'var(--text)' }}>Progresso Geral do Projeto</span>
+          <span style={{ fontSize: 22, fontWeight: 800, color: avgProgress === 100 ? '#10b981' : avgProgress >= 50 ? '#0ea5e9' : '#f59e0b' }}>{avgProgress}%</span>
+        </div>
+        <div style={{ height: 12, borderRadius: 12, background: 'var(--border)', overflow: 'hidden', position: 'relative' }}>
+          <div style={{ height: '100%', width: `${avgProgress}%`, borderRadius: 12, transition: 'width 0.4s ease',
+            background: avgProgress === 100 ? '#10b981' : avgProgress >= 50 ? '#0ea5e9' : avgProgress > 0 ? '#f59e0b' : '#3f3f46' }} />
+        </div>
+        {/* Milestone markers */}
+        <div className="flex justify-between" style={{ marginTop: 6 }}>
+          {[0,25,50,100].map(m => (
+            <span key={m} style={{ fontSize: 10, color: avgProgress >= m ? 'var(--text-dim)' : 'var(--text-faint)', fontWeight: 500 }}>{m}%</span>
+          ))}
+        </div>
+      </div>
+
+      {/* Two-column grid */}
+      <div className="dash-grid-2" style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 16, marginBottom: 16 }}>
+        {/* Progress distribution */}
+        <div style={{ background: 'var(--surface)', border: '1px solid var(--border)', borderRadius: 12, padding: '18px 20px' }}>
+          <div style={{ fontSize: 13, fontWeight: 600, color: 'var(--text)', marginBottom: 16 }}>Distribuição por % de Progresso</div>
+          {progDist.map(p => (
+            <div key={p.value} style={{ marginBottom: 14 }}>
+              <div className="flex items-center justify-between" style={{ marginBottom: 5 }}>
+                <div className="flex items-center gap-2">
+                  <span style={{ width: 10, height: 10, borderRadius: '50%', background: p.color }} />
+                  <span style={{ fontSize: 12, fontWeight: 600, color: p.color }}>{p.label}</span>
+                </div>
+                <span style={{ fontSize: 12, color: 'var(--text-dim)', fontWeight: 500 }}>
+                  {p.count} card{p.count !== 1 ? 's' : ''} · {totalCards > 0 ? Math.round(p.count / totalCards * 100) : 0}%
+                </span>
+              </div>
+              <div style={{ height: 8, borderRadius: 8, background: 'var(--border)', overflow: 'hidden' }}>
+                <div style={{ height: '100%', width: totalCards > 0 ? `${(p.count / totalCards) * 100}%` : '0%', background: p.color, borderRadius: 8, transition: 'width 0.4s ease' }} />
+              </div>
+            </div>
+          ))}
+        </div>
+
+        {/* Column distribution */}
+        <div style={{ background: 'var(--surface)', border: '1px solid var(--border)', borderRadius: 12, padding: '18px 20px' }}>
+          <div style={{ fontSize: 13, fontWeight: 600, color: 'var(--text)', marginBottom: 16 }}>Cards por Coluna (board atual)</div>
+          {colDist.length === 0 && <div style={{ fontSize: 12, color: 'var(--text-faint)' }}>Sem colunas.</div>}
+          {colDist.map((c, i) => (
+            <div key={i} style={{ marginBottom: 14 }}>
+              <div className="flex items-center justify-between" style={{ marginBottom: 5 }}>
+                <span style={{ fontSize: 12, fontWeight: 500, color: 'var(--text-dim)' }}>{c.name}</span>
+                <span style={{ fontSize: 12, color: 'var(--text-dim)', fontWeight: 500 }}>{c.count}</span>
+              </div>
+              <div style={{ height: 8, borderRadius: 8, background: 'var(--border)', overflow: 'hidden' }}>
+                <div style={{ height: '100%', width: `${(c.count / maxCol) * 100}%`, background: 'var(--accent)', borderRadius: 8, transition: 'width 0.4s ease', opacity: 0.7 + (i / colDist.length) * 0.3 }} />
+              </div>
+            </div>
+          ))}
+        </div>
+      </div>
+
+      {/* Two more panels */}
+      <div className="dash-grid-2" style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 16 }}>
+        {/* Priority breakdown */}
+        <div style={{ background: 'var(--surface)', border: '1px solid var(--border)', borderRadius: 12, padding: '18px 20px' }}>
+          <div style={{ fontSize: 13, fontWeight: 600, color: 'var(--text)', marginBottom: 16 }}>Cards por Prioridade</div>
+          <div className="flex gap-4">
+            {priDist.map(p => (
+              <div key={p.key} style={{ flex: 1, textAlign: 'center' }}>
+                <div style={{ fontSize: 28, fontWeight: 700, color: p.dot, marginBottom: 4 }}>{p.count}</div>
+                <div style={{ height: 4, borderRadius: 4, background: p.dot, marginBottom: 6, opacity: 0.7 }} />
+                <div style={{ fontSize: 11, color: 'var(--text-faint)' }}>{p.label}</div>
+              </div>
+            ))}
+          </div>
+        </div>
+
+        {/* Areas breakdown */}
+        <div style={{ background: 'var(--surface)', border: '1px solid var(--border)', borderRadius: 12, padding: '18px 20px' }}>
+          <div style={{ fontSize: 13, fontWeight: 600, color: 'var(--text)', marginBottom: 16 }}>Progresso por Área</div>
+          {areaDist.map(a => (
+            <div key={a.id} style={{ marginBottom: 14 }}>
+              <div className="flex items-center justify-between" style={{ marginBottom: 5 }}>
+                <div className="flex items-center gap-2">
+                  <span style={{ width: 8, height: 8, borderRadius: '50%', background: a.color }} />
+                  <span style={{ fontSize: 12, fontWeight: 500, color: 'var(--text-dim)' }}>{a.name}</span>
+                </div>
+                <span style={{ fontSize: 12, color: a.color, fontWeight: 600 }}>{a.avgProgress}%</span>
+              </div>
+              <div style={{ height: 8, borderRadius: 8, background: 'var(--border)', overflow: 'hidden' }}>
+                <div style={{ height: '100%', width: `${a.avgProgress}%`, background: a.color, borderRadius: 8, transition: 'width 0.4s ease' }} />
+              </div>
+              <div style={{ fontSize: 10, color: 'var(--text-faint)', marginTop: 3 }}>{a.count} card{a.count !== 1 ? 's' : ''}</div>
+            </div>
+          ))}
+        </div>
+      </div>
     </div>
   );
 }
@@ -596,7 +1358,12 @@ function KanbanApp() {
   const [draggingCard, setDraggingCard] = useState(null);
   const [dropTarget, setDropTarget] = useState(null);
   const [search, setSearch] = useState('');
-  const [syncStatus, setSyncStatus] = useState('connecting'); // connecting | online | saving | offline | error
+  const [syncStatus, setSyncStatus] = useState('connecting');
+  const [editingArea, setEditingArea] = useState(null);
+  const [editingBoard, setEditingBoard] = useState(null);
+  const [showDash, setShowDash] = useState(false);
+  const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
+  const [canInstall, setCanInstall] = useState(!!window.__canInstallApp);
   const [fbState, setFbState] = useState(() => {
     if (window.__fbNotConfigured) return 'unconfigured';
     if (window.__fbError) return 'error';
@@ -607,7 +1374,20 @@ function KanbanApp() {
   const fileInputRef = useRef(null);
   const isApplyingRemote = useRef(false);
 
-  // Espera o script type=module terminar de carregar (caso o React monte antes)
+  // PWA: escuta evento de instalável
+  useEffect(() => {
+    const onInstallable = () => setCanInstall(true);
+    window.addEventListener('pwa-installable', onInstallable);
+    return () => window.removeEventListener('pwa-installable', onInstallable);
+  }, []);
+
+  // Fecha drawer ao mudar para desktop
+  useEffect(() => {
+    const onResize = () => { if (window.innerWidth > 640) setMobileMenuOpen(false); };
+    window.addEventListener('resize', onResize);
+    return () => window.removeEventListener('resize', onResize);
+  }, []);
+
   useEffect(() => {
     if (fbState !== 'waiting') return;
     const check = () => {
@@ -620,47 +1400,48 @@ function KanbanApp() {
     return () => window.removeEventListener('firebase-ready', check);
   }, [fbState]);
 
-  // Subscreve em mudanças do documento principal — tempo real
   useEffect(() => {
     if (fbState !== 'ready') return;
     const { db, doc, onSnapshot, setDoc, serverTimestamp } = window.fb;
     const ref = doc(db, FB_DOC_PATH[0], FB_DOC_PATH[1]);
-
     const unsub = onSnapshot(ref, (snap) => {
       if (!snap.exists()) {
-        // Primeira vez: cria documento com estado inicial
         const initial = INITIAL_STATE();
-        setDoc(ref, { ...initial, _lastClient: CLIENT_ID, _updatedAt: serverTimestamp() })
-          .catch(err => console.error('Init doc failed:', err));
-        setState(initial);
-        setLoading(false);
-        setSyncStatus('online');
-        return;
+        setDoc(ref, { ...initial, _lastClient: CLIENT_ID, _updatedAt: serverTimestamp() }).catch(console.error);
+        setState(initial); setLoading(false); setSyncStatus('online'); return;
       }
       const data = snap.data();
       const { _lastClient, _updatedAt, ...remoteState } = data;
+      // Migrate: ensure areas/departments exist
+      if (!remoteState.areas) {
+        const areaId = uid('a');
+        remoteState.areas = [{ id: areaId, name: 'Planejamento', color: '#3b5cff', permissions: { view: 'all', edit: 'all' } }];
+        remoteState.activeAreaId = areaId;
+        remoteState.departments = DEFAULT_DEPARTMENTS;
+        remoteState.boards = (remoteState.boards || []).map(b => ({ ...b, areaId }));
+      }
+      if (!remoteState.departments) remoteState.departments = DEFAULT_DEPARTMENTS;
+      // Migrate: garantir que cada board tem cor
+      remoteState.boards = (remoteState.boards || []).map((b, i) => {
+        if (b.color) return b;
+        // Reaproveita cor da área ou pega uma da paleta de boards
+        const area = (remoteState.areas || []).find(a => a.id === b.areaId);
+        const fallback = area?.color || BOARD_COLORS[i % BOARD_COLORS.length];
+        return { ...b, color: fallback };
+      });
       setState(prev => {
         if (prev && JSON.stringify(prev) === JSON.stringify(remoteState)) return prev;
         isApplyingRemote.current = true;
         return remoteState;
       });
-      setLoading(false);
-      setSyncStatus('online');
-    }, (err) => {
-      console.error('Firebase listen error:', err);
-      setSyncStatus('error');
-      setLoading(false);
-    });
+      setLoading(false); setSyncStatus('online');
+    }, (err) => { console.error('Firebase listen error:', err); setSyncStatus('error'); setLoading(false); });
     return unsub;
   }, [fbState]);
 
-  // Salva mudanças locais no Firestore (com debounce)
   useEffect(() => {
     if (!state || loading || fbState !== 'ready') return;
-    if (isApplyingRemote.current) {
-      isApplyingRemote.current = false;
-      return;
-    }
+    if (isApplyingRemote.current) { isApplyingRemote.current = false; return; }
     setSyncStatus('saving');
     if (saveTimer.current) clearTimeout(saveTimer.current);
     saveTimer.current = setTimeout(async () => {
@@ -669,10 +1450,7 @@ function KanbanApp() {
         const ref = doc(db, FB_DOC_PATH[0], FB_DOC_PATH[1]);
         await setDoc(ref, { ...state, _lastClient: CLIENT_ID, _updatedAt: serverTimestamp() });
         setSyncStatus('online');
-      } catch (e) {
-        console.error('Firebase save error:', e);
-        setSyncStatus('error');
-      }
+      } catch (e) { console.error(e); setSyncStatus('error'); }
     }, 500);
     return () => { if (saveTimer.current) clearTimeout(saveTimer.current); };
   }, [state, loading, fbState]);
@@ -680,24 +1458,59 @@ function KanbanApp() {
   const updateBoard = useCallback((boardId, updater) => {
     setState(s => ({ ...s, boards: s.boards.map(b => b.id === boardId ? updater(b) : b) }));
   }, []);
+
+  const activeArea  = state?.areas.find(a => a.id === state.activeAreaId);
   const activeBoard = state?.boards.find(b => b.id === state.activeBoardId);
 
+  // ---- Area management ----
+  const createArea = (name) => {
+    const newArea = { id: uid('a'), name, color: AREA_COLORS[Math.floor(Math.random() * AREA_COLORS.length)], permissions: { view: 'all', edit: 'all' } };
+    const newBoard = { id: uid('b'), name: 'Board principal', areaId: newArea.id, color: newArea.color, createdAt: Date.now(), columns: [
+      { id: uid('c'), name: 'A fazer',        cards: [] },
+      { id: uid('c'), name: 'Em andamento',   cards: [] },
+      { id: uid('c'), name: 'Concluído',      cards: [] },
+    ]};
+    setState(s => ({ ...s, areas: [...s.areas, newArea], boards: [...s.boards, newBoard], activeBoardId: newBoard.id, activeAreaId: newArea.id }));
+  };
+  const saveArea = (updatedArea) => {
+    setState(s => ({ ...s, areas: s.areas.map(a => a.id === updatedArea.id ? updatedArea : a) }));
+  };
+  const deleteArea = (areaId) => {
+    setState(s => {
+      const remainingAreas  = s.areas.filter(a => a.id !== areaId);
+      const remainingBoards = s.boards.filter(b => b.areaId !== areaId);
+      if (remainingAreas.length === 0) return INITIAL_STATE();
+      const newActiveArea  = remainingAreas[0];
+      const newActiveBoard = remainingBoards.find(b => b.areaId === newActiveArea.id) || remainingBoards[0];
+      return { ...s, areas: remainingAreas, boards: remainingBoards, activeAreaId: newActiveArea.id, activeBoardId: newActiveBoard?.id };
+    });
+  };
+  const selectArea = (areaId) => {
+    setState(s => {
+      const firstBoard = s.boards.find(b => b.areaId === areaId);
+      return { ...s, activeAreaId: areaId, activeBoardId: firstBoard?.id || s.activeBoardId };
+    });
+  };
+
+  // ---- Board management ----
   const createBoard = (name) => {
-    const newBoard = {
-      id: uid('b'), name, createdAt: Date.now(),
+    const color = BOARD_COLORS[Math.floor(Math.random() * BOARD_COLORS.length)];
+    const newBoard = { id: uid('b'), name, areaId: state.activeAreaId, color, createdAt: Date.now(),
       columns: [
         { id: uid('c'), name: 'A fazer', cards: [] },
         { id: uid('c'), name: 'Em andamento', cards: [] },
         { id: uid('c'), name: 'Concluído', cards: [] },
-      ],
-    };
+      ]};
     setState(s => ({ ...s, boards: [...s.boards, newBoard], activeBoardId: newBoard.id }));
+  };
+  const saveBoard = (updatedBoard) => {
+    setState(s => ({ ...s, boards: s.boards.map(b => b.id === updatedBoard.id ? { ...b, ...updatedBoard } : b) }));
   };
   const deleteBoard = (id) => {
     setState(s => {
       const remaining = s.boards.filter(b => b.id !== id);
-      if (remaining.length === 0) return INITIAL_STATE();
-      return { ...s, boards: remaining, activeBoardId: remaining[0].id };
+      const areaBoards = remaining.filter(b => b.areaId === s.activeAreaId);
+      return { ...s, boards: remaining, activeBoardId: areaBoards[0]?.id || remaining[0]?.id };
     });
   };
 
@@ -716,7 +1529,7 @@ function KanbanApp() {
   };
 
   const addCard = (columnId, title) => {
-    const card = { id: uid('card'), title, description: '', labels: [], priority: 'low', dueDate: '', assignee: '', createdAt: Date.now() };
+    const card = { id: uid('card'), title, description: '', labels: [], priority: 'low', progress: 0, dueDate: '', assignee: '', createdAt: Date.now() };
     updateBoard(activeBoard.id, b => ({ ...b, columns: b.columns.map(c => c.id === columnId ? { ...c, cards: [...c.cards, card] } : c) }));
   };
   const saveCard = (updatedCard) => {
@@ -730,11 +1543,7 @@ function KanbanApp() {
     updateBoard(activeBoard.id, b => {
       let movingCard = null;
       const columns = b.columns.map(c => {
-        if (c.id === fromColumnId) {
-          const card = c.cards.find(x => x.id === cardId);
-          if (card) movingCard = card;
-          return { ...c, cards: c.cards.filter(x => x.id !== cardId) };
-        }
+        if (c.id === fromColumnId) { const card = c.cards.find(x => x.id === cardId); if (card) movingCard = card; return { ...c, cards: c.cards.filter(x => x.id !== cardId) }; }
         return c;
       });
       if (!movingCard) return b;
@@ -743,33 +1552,23 @@ function KanbanApp() {
     setOpenCardRef(prev => prev && prev.cardId === cardId ? { ...prev, columnId: toColumnId } : prev);
   };
 
-  // Export/Import
   const exportJSON = () => {
     const blob = new Blob([JSON.stringify(state, null, 2)], { type: 'application/json' });
     const url = URL.createObjectURL(blob);
     const a = document.createElement('a');
-    const date = new Date().toISOString().slice(0, 10);
-    a.href = url;
-    a.download = `kanban-sese-${date}.json`;
-    a.click();
+    a.href = url; a.download = `kanban-sese-${new Date().toISOString().slice(0, 10)}.json`; a.click();
     URL.revokeObjectURL(url);
   };
   const handleImport = (e) => {
-    const file = e.target.files[0];
-    if (!file) return;
+    const file = e.target.files[0]; if (!file) return;
     const reader = new FileReader();
     reader.onload = (ev) => {
       try {
         const data = JSON.parse(ev.target.result);
         if (!data.boards || !Array.isArray(data.boards)) throw new Error('Formato inválido');
-        if (!confirm(`Importar este arquivo? Os dados atuais serão SUBSTITUÍDOS (${data.boards.length} board(s) encontrados).`)) {
-          e.target.value = '';
-          return;
-        }
+        if (!confirm(`Importar este arquivo? Os dados atuais serão SUBSTITUÍDOS.`)) { e.target.value = ''; return; }
         setState(data);
-      } catch (err) {
-        alert('Arquivo inválido: ' + err.message);
-      }
+      } catch (err) { alert('Arquivo inválido: ' + err.message); }
       e.target.value = '';
     };
     reader.readAsText(file);
@@ -799,19 +1598,17 @@ function KanbanApp() {
           </div>
           <h2 className="font-display" style={{ fontSize: 22, fontWeight: 600, marginBottom: 10 }}>Configure o Firebase</h2>
           <p style={{ fontSize: 14, color: 'var(--text-dim)', lineHeight: 1.6, marginBottom: 20 }}>
-            Pra que todo mundo do time veja o mesmo board em tempo real, esse arquivo precisa estar
-            conectado a um projeto Firebase. Faça o seguinte:
+            Pra que todo mundo do time veja o mesmo board em tempo real, esse arquivo precisa estar conectado a um projeto Firebase.
           </p>
           <ol style={{ fontSize: 13, color: 'var(--text-dim)', lineHeight: 1.8, paddingLeft: 20, marginBottom: 20 }}>
             <li>Acesse <a href="https://console.firebase.google.com" target="_blank" style={{ color: 'var(--accent)' }}>console.firebase.google.com</a> e crie (ou abra) um projeto.</li>
             <li>No menu lateral, <b>Firestore Database</b> → <b>Criar banco de dados</b> → modo de teste → região <b>southamerica-east1</b>.</li>
-            <li>Volte ao painel, clique no ícone <b>&lt;/&gt;</b> pra registrar um app web. Dê um nome qualquer e copie o objeto <code style={{ background: 'var(--surface)', padding: '1px 5px', borderRadius: 3 }}>firebaseConfig</code>.</li>
-            <li>Abra este arquivo (<code style={{ background: 'var(--surface)', padding: '1px 5px', borderRadius: 3 }}>index.html</code>) num editor de texto e cole os valores no bloco marcado lá no topo.</li>
+            <li>Volte ao painel, clique no ícone <b>&lt;/&gt;</b> pra registrar um app web e copie o objeto <code style={{ background: 'var(--surface)', padding: '1px 5px', borderRadius: 3 }}>firebaseConfig</code>.</li>
+            <li>Abra este arquivo num editor de texto e cole os valores no bloco marcado no topo.</li>
             <li>Salve, recarregue esta página. Pronto.</li>
           </ol>
           <div style={{ padding: 12, background: 'var(--accent-soft)', borderRadius: 6, fontSize: 12, color: 'var(--text-dim)', lineHeight: 1.5 }}>
-            <b style={{ color: 'var(--accent)' }}>Por que isso?</b> Sem essa configuração, o app não tem onde guardar os dados na nuvem.
-            Cada pessoa veria um kanban diferente.
+            <b style={{ color: 'var(--accent)' }}>Por que isso?</b> Sem essa configuração, o app não tem onde guardar os dados na nuvem. Cada pessoa veria um kanban diferente.
           </div>
         </div>
       </div>
@@ -841,37 +1638,68 @@ function KanbanApp() {
 
   return (
     <div>
-      <header className="flex items-center justify-between sticky top-0 z-30"
+      {/* ===== HEADER ===== */}
+      <header className="app-header flex items-center justify-between sticky top-0 z-30"
         style={{ padding: '12px 20px', background: 'rgba(10, 10, 11, 0.85)', backdropFilter: 'blur(10px)', borderBottom: '1px solid var(--border-soft)' }}>
-        <div className="flex items-center gap-4">
+        <div className="header-left flex items-center gap-3">
           <div className="flex items-center gap-3">
-            <div style={{ width: 64, height: 30, background: '#ffffff', padding: '4px 6px', borderRadius: 6, display: 'flex', alignItems: 'center', justifyContent: 'center', overflow: 'hidden' }}>
+            <div className="brand-mini" style={{ width: 64, height: 30, background: '#ffffff', padding: '4px 6px', borderRadius: 6, display: 'flex', alignItems: 'center', justifyContent: 'center', overflow: 'hidden' }}>
               <img src={LOGO_DATA_URI} alt="SESE" style={{ width: '100%', height: '100%', objectFit: 'contain', display: 'block' }} />
             </div>
-            <div className="flex flex-col" style={{ lineHeight: 1.2 }}>
+            <div className="brand-text-block flex flex-col" style={{ lineHeight: 1.2 }}>
               <span className="font-display" style={{ fontSize: 16, fontWeight: 600 }}>Kanban SESE</span>
               <span className="font-mono" style={{ fontSize: 10, textTransform: 'uppercase', letterSpacing: '0.12em', color: 'var(--text-faint)' }}>tempo real · firebase</span>
             </div>
           </div>
-          <div style={{ width: 1, height: 24, background: 'var(--border)' }} />
-          <BoardSwitcher boards={state.boards} activeBoardId={state.activeBoardId}
+
+          <div className="header-divider" style={{ width: 1, height: 24, background: 'var(--border)' }} />
+
+          {/* Area Switcher */}
+          <AreaSwitcher
+            areas={state.areas}
+            activeAreaId={state.activeAreaId}
+            onSelect={selectArea}
+            onCreate={createArea}
+            onEditArea={(area) => setEditingArea(area)} />
+
+          <div className="header-divider" style={{ width: 1, height: 24, background: 'var(--border)' }} />
+
+          {/* Board Switcher (scoped to active area) */}
+          <BoardSwitcher
+            boards={state.boards}
+            activeBoardId={state.activeBoardId}
+            activeAreaId={state.activeAreaId}
             onSelect={(id) => setState(s => ({ ...s, activeBoardId: id }))}
-            onCreate={createBoard} onDelete={deleteBoard} />
+            onCreate={createBoard}
+            onDelete={deleteBoard}
+            onEditBoard={(board) => setEditingBoard(board)} />
         </div>
 
-        <div className="flex items-center gap-3">
-          <div className="relative">
+        {/* ----- Ações DESKTOP ----- */}
+        <input ref={fileInputRef} type="file" accept=".json,application/json" style={{ display: 'none' }} onChange={handleImport} />
+
+        <div className="desktop-only items-center gap-3">
+          <div className="search-input-wrapper relative">
             <Search size={14} style={{ position: 'absolute', left: 10, top: '50%', transform: 'translateY(-50%)', color: 'var(--text-faint)' }} />
             <input className="kbn" placeholder="Buscar cards…" style={{ paddingLeft: 32, width: 200, fontSize: 13 }}
               value={search} onChange={e => setSearch(e.target.value)} />
           </div>
 
-          <input ref={fileInputRef} type="file" accept=".json,application/json" style={{ display: 'none' }} onChange={handleImport} />
           <button className="btn btn-outline" onClick={() => fileInputRef.current?.click()} title="Importar JSON">
             <Upload size={13} /> Importar
           </button>
           <button className="btn btn-outline" onClick={exportJSON} title="Exportar JSON">
             <Download size={13} /> Exportar
+          </button>
+
+          <div style={{ width: 1, height: 24, background: 'var(--border)' }} />
+
+          {/* Dashboard toggle */}
+          <button
+            onClick={() => setShowDash(d => !d)}
+            className="btn"
+            style={{ background: showDash ? 'var(--accent)' : 'transparent', color: showDash ? '#fff' : 'var(--text-dim)', border: `1px solid ${showDash ? 'var(--accent)' : 'var(--border)'}` }}>
+            <BarChart2 size={13} /> Dashboard
           </button>
 
           <div className="font-mono flex items-center gap-1" style={{ fontSize: 11, color: 'var(--text-faint)', minWidth: 80 }}>
@@ -881,18 +1709,203 @@ function KanbanApp() {
             {syncStatus === 'error'      && (<><AlertCircle size={11} style={{ color: 'var(--danger)' }} /> erro</>)}
           </div>
         </div>
+
+        {/* ----- Ações MOBILE ----- */}
+        <div className="mobile-only items-center gap-2">
+          {/* Indicador de status compacto */}
+          <div style={{ display: 'flex', alignItems: 'center' }}>
+            {syncStatus === 'saving'     && <Loader2 size={14} className="spin" style={{ color: 'var(--text-faint)' }} />}
+            {syncStatus === 'online'     && <span style={{ width: 8, height: 8, borderRadius: '50%', background: '#10b981', display: 'inline-block' }} />}
+            {syncStatus === 'connecting' && <Loader2 size={14} className="spin" style={{ color: 'var(--text-faint)' }} />}
+            {syncStatus === 'error'      && <AlertCircle size={14} style={{ color: 'var(--danger)' }} />}
+          </div>
+          {/* Botão Dashboard com label */}
+          <button
+            onClick={() => setShowDash(d => !d)}
+            className="btn"
+            style={{ padding: '7px 10px', fontSize: 12, background: showDash ? 'var(--accent)' : 'transparent', color: showDash ? '#fff' : 'var(--text-dim)', border: `1px solid ${showDash ? 'var(--accent)' : 'var(--border)'}` }}>
+            <BarChart2 size={14} /> Dashboard
+          </button>
+          {/* Menu hamburguer */}
+          <button
+            onClick={() => setMobileMenuOpen(true)}
+            className="btn btn-outline"
+            style={{ padding: 8 }}
+            aria-label="Abrir menu">
+            <Menu size={18} />
+          </button>
+        </div>
       </header>
 
-      <main style={{ padding: '20px' }}>
-        {activeBoard && (
-          <>
-            <div className="flex items-baseline gap-3" style={{ marginBottom: 16 }}>
-              <h1 className="font-display" style={{ fontSize: 28, fontWeight: 600, letterSpacing: '-0.02em' }}>{activeBoard.name}</h1>
-              <span className="font-mono" style={{ fontSize: 11, color: 'var(--text-faint)' }}>
-                {activeBoard.columns.reduce((acc, c) => acc + c.cards.length, 0)} cards · {activeBoard.columns.length} colunas
-              </span>
+      {/* ===== MOBILE DRAWER ===== */}
+      {mobileMenuOpen && (
+        <>
+          <div className="mobile-drawer-backdrop" onClick={() => setMobileMenuOpen(false)} />
+          <div className="mobile-drawer">
+            <div className="flex items-center justify-between" style={{ padding: '16px 18px', borderBottom: '1px solid var(--border-soft)' }}>
+              <div className="flex items-center gap-2">
+                <div style={{ width: 32, height: 32, borderRadius: 8, background: 'var(--accent)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                  <Layers size={16} style={{ color: '#fff' }} />
+                </div>
+                <div>
+                  <div className="font-display" style={{ fontSize: 14, fontWeight: 600 }}>Kanban SESE</div>
+                  <div className="font-mono" style={{ fontSize: 9, textTransform: 'uppercase', letterSpacing: '0.12em', color: 'var(--text-faint)' }}>menu</div>
+                </div>
+              </div>
+              <button onClick={() => setMobileMenuOpen(false)} className="btn btn-ghost" style={{ padding: 6 }}>
+                <X size={18} />
+              </button>
             </div>
 
+            <div style={{ padding: 18, display: 'flex', flexDirection: 'column', gap: 14 }}>
+              {/* Status row */}
+              <div style={{ display: 'flex', alignItems: 'center', gap: 8, fontSize: 12, color: 'var(--text-dim)', padding: '8px 12px', background: 'var(--surface)', borderRadius: 8, border: '1px solid var(--border-soft)' }}>
+                {syncStatus === 'saving'     && (<><Loader2 size={12} className="spin" /> Sincronizando…</>)}
+                {syncStatus === 'online'     && (<><span style={{ width: 8, height: 8, borderRadius: '50%', background: '#10b981' }} /> Online · Firebase conectado</>)}
+                {syncStatus === 'connecting' && (<><Loader2 size={12} className="spin" /> Conectando…</>)}
+                {syncStatus === 'error'      && (<><AlertCircle size={12} style={{ color: 'var(--danger)' }} /> Erro de sincronização</>)}
+              </div>
+
+              {/* Search */}
+              <div>
+                <label style={{ fontSize: 10, textTransform: 'uppercase', letterSpacing: '0.1em', fontWeight: 600, color: 'var(--text-faint)', display: 'block', marginBottom: 6 }}>Buscar</label>
+                <div className="search-input-wrapper relative">
+                  <Search size={14} style={{ position: 'absolute', left: 12, top: '50%', transform: 'translateY(-50%)', color: 'var(--text-faint)' }} />
+                  <input className="kbn" placeholder="Buscar cards…" style={{ paddingLeft: 36 }}
+                    value={search} onChange={e => setSearch(e.target.value)} />
+                </div>
+              </div>
+
+              {/* Ações */}
+              <div>
+                <label style={{ fontSize: 10, textTransform: 'uppercase', letterSpacing: '0.1em', fontWeight: 600, color: 'var(--text-faint)', display: 'block', marginBottom: 6 }}>Ações</label>
+                <div className="flex flex-col gap-2">
+                  <button className="btn btn-outline" style={{ justifyContent: 'flex-start', padding: '10px 14px' }}
+                    onClick={() => { setShowDash(d => !d); setMobileMenuOpen(false); }}>
+                    <BarChart2 size={14} /> {showDash ? 'Voltar ao board' : 'Abrir Dashboard'}
+                  </button>
+                  <button className="btn btn-outline" style={{ justifyContent: 'flex-start', padding: '10px 14px' }}
+                    onClick={() => { fileInputRef.current?.click(); setMobileMenuOpen(false); }}>
+                    <Upload size={14} /> Importar JSON
+                  </button>
+                  <button className="btn btn-outline" style={{ justifyContent: 'flex-start', padding: '10px 14px' }}
+                    onClick={() => { exportJSON(); setMobileMenuOpen(false); }}>
+                    <Download size={14} /> Exportar JSON
+                  </button>
+                </div>
+              </div>
+
+              {/* Área ativa e permissões */}
+              {activeArea && activeBoard && (
+                <div>
+                  <label style={{ fontSize: 10, textTransform: 'uppercase', letterSpacing: '0.1em', fontWeight: 600, color: 'var(--text-faint)', display: 'block', marginBottom: 6 }}>Board atual</label>
+                  <div style={{ background: 'var(--surface)', border: '1px solid var(--border-soft)', borderRadius: 8, padding: 12, display: 'flex', flexDirection: 'column', gap: 8 }}>
+                    <div className="flex items-center gap-2">
+                      <span style={{ width: 10, height: 10, borderRadius: '50%', background: activeBoard.color || '#3b5cff', flexShrink: 0 }} />
+                      <span style={{ fontSize: 13, fontWeight: 600, color: 'var(--text)' }}>{activeBoard.name}</span>
+                    </div>
+                    <div className="flex items-center gap-2">
+                      <span style={{ width: 6, height: 6, borderRadius: '50%', background: activeArea.color, flexShrink: 0 }} />
+                      <span style={{ fontSize: 11, color: 'var(--text-faint)' }}>{activeArea.name}</span>
+                    </div>
+                    <button className="btn btn-outline" style={{ justifyContent: 'flex-start', padding: '8px 12px', marginTop: 4 }}
+                      onClick={() => { setEditingBoard(activeBoard); setMobileMenuOpen(false); }}>
+                      <Settings size={13} /> Configurar board (nome e cor)
+                    </button>
+                  </div>
+                </div>
+              )}
+
+              {/* Permissões da área */}
+              {activeArea && (
+                <div>
+                  <label style={{ fontSize: 10, textTransform: 'uppercase', letterSpacing: '0.1em', fontWeight: 600, color: 'var(--text-faint)', display: 'block', marginBottom: 6 }}>Permissões da área</label>
+                  <div style={{ background: 'var(--surface)', border: '1px solid var(--border-soft)', borderRadius: 8, padding: 12 }}>
+                    <div className="flex items-center gap-2" style={{ marginBottom: 8 }}>
+                      <span style={{ color: activeArea.permissions.view === 'all' ? '#10b981' : '#0ea5e9', display: 'flex' }}>
+                        {activeArea.permissions.view === 'all' ? <GlobeIcon size={13} /> : <EyeIcon size={13} />}
+                      </span>
+                      <span style={{ fontSize: 11, color: 'var(--text-faint)', minWidth: 56 }}>Visualizar</span>
+                      <span style={{ fontSize: 11, fontWeight: 500, color: 'var(--text-dim)',
+                        background: activeArea.permissions.view === 'all' ? 'rgba(16,185,129,0.1)' : 'rgba(14,165,233,0.1)',
+                        padding: '2px 8px', borderRadius: 20,
+                        border: `1px solid ${activeArea.permissions.view === 'all' ? 'rgba(16,185,129,0.25)' : 'rgba(14,165,233,0.25)'}` }}>
+                        {permLabel(activeArea.permissions.view, state.departments)}
+                      </span>
+                    </div>
+                    <div className="flex items-center gap-2" style={{ marginBottom: 10 }}>
+                      <span style={{ color: activeArea.permissions.edit === 'all' ? '#f59e0b' : '#e11d48', display: 'flex' }}>
+                        <PenIcon size={13} />
+                      </span>
+                      <span style={{ fontSize: 11, color: 'var(--text-faint)', minWidth: 56 }}>Editar</span>
+                      <span style={{ fontSize: 11, fontWeight: 500, color: 'var(--text-dim)',
+                        background: activeArea.permissions.edit === 'all' ? 'rgba(245,158,11,0.1)' : 'rgba(225,29,72,0.1)',
+                        padding: '2px 8px', borderRadius: 20,
+                        border: `1px solid ${activeArea.permissions.edit === 'all' ? 'rgba(245,158,11,0.25)' : 'rgba(225,29,72,0.25)'}` }}>
+                        {permLabel(activeArea.permissions.edit, state.departments)}
+                      </span>
+                    </div>
+                    <button className="btn btn-outline" style={{ justifyContent: 'flex-start', padding: '8px 12px', width: '100%' }}
+                      onClick={() => { setEditingArea(activeArea); setMobileMenuOpen(false); }}>
+                      <Shield size={13} /> Quem pode ver / editar
+                    </button>
+                  </div>
+                </div>
+              )}
+
+              {/* Instalar app */}
+              {canInstall && (
+                <div>
+                  <label style={{ fontSize: 10, textTransform: 'uppercase', letterSpacing: '0.1em', fontWeight: 600, color: 'var(--text-faint)', display: 'block', marginBottom: 6 }}>Aplicativo</label>
+                  <button className="btn btn-primary" style={{ justifyContent: 'flex-start', padding: '10px 14px', width: '100%' }}
+                    onClick={async () => { await window.installPWA?.(); setCanInstall(false); setMobileMenuOpen(false); }}>
+                    <Smartphone size={14} /> Instalar no dispositivo
+                  </button>
+                  <div style={{ fontSize: 11, color: 'var(--text-faint)', marginTop: 6, lineHeight: 1.5 }}>
+                    Instale o Kanban como app no seu celular para acesso rápido pela tela inicial.
+                  </div>
+                </div>
+              )}
+            </div>
+          </div>
+        </>
+      )}
+
+      {/* ===== MAIN ===== */}
+      <main className="app-main" style={{ padding: '20px' }}>
+        {showDash && state && activeArea && (
+          <Dashboard boards={state.boards} areas={state.areas} activeAreaId={state.activeAreaId} activeBoardId={state.activeBoardId} />
+        )}
+        {!showDash && activeBoard && activeArea && (
+          <>
+            {/* Board title row + Permissions panel */}
+            <div className="board-meta-row flex items-start justify-between" style={{ marginBottom: 16, gap: 16 }}>
+              <div className="min-w-0" style={{ flex: 1 }}>
+                <div className="flex items-center gap-3 flex-wrap">
+                  {/* Cor do board (clicável pra editar) */}
+                  <button onClick={() => setEditingBoard(activeBoard)}
+                    title="Configurar board (nome e cor)"
+                    style={{ width: 14, height: 14, borderRadius: '50%', background: activeBoard.color || '#3b5cff', flexShrink: 0, border: 'none', cursor: 'pointer', boxShadow: `0 0 0 2px ${(activeBoard.color || '#3b5cff')}22`, padding: 0 }} />
+                  <h1 className="board-title font-display truncate" style={{ fontSize: 28, fontWeight: 600, letterSpacing: '-0.02em', maxWidth: '100%' }}>{activeBoard.name}</h1>
+                  <span className="font-mono" style={{ fontSize: 11, color: 'var(--text-faint)' }}>
+                    {activeBoard.columns.reduce((acc, c) => acc + c.cards.length, 0)} cards · {activeBoard.columns.length} colunas
+                  </span>
+                </div>
+                {/* Area breadcrumb */}
+                <div className="flex items-center gap-1" style={{ marginTop: 4 }}>
+                  <span style={{ width: 6, height: 6, borderRadius: '50%', background: activeArea.color }} />
+                  <span style={{ fontSize: 11, color: 'var(--text-faint)' }}>{activeArea.name}</span>
+                </div>
+              </div>
+
+              {/* Permissions Panel */}
+              <PermissionsPanel
+                area={activeArea}
+                departments={state.departments}
+                onEdit={() => setEditingArea(activeArea)} />
+            </div>
+
+            {/* Columns */}
             <div className="flex overflow-x-auto scrollbar-thin" style={{ gap: 12, paddingBottom: 16, alignItems: 'flex-start' }}>
               {activeBoard.columns.map(col => (
                 <Column key={col.id} column={col}
@@ -904,26 +1917,93 @@ function KanbanApp() {
                   isDropTarget={dropTarget === col.id} searchTerm={search} />
               ))}
               <button onClick={addColumn}
+                className="hide-on-mobile"
                 style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '0 16px', borderRadius: 8, fontSize: 13, fontWeight: 500, minWidth: 220, height: 44, background: 'transparent', border: '1px dashed var(--border)', color: 'var(--text-faint)', cursor: 'pointer', transition: 'all 0.12s' }}
                 onMouseEnter={e => { e.currentTarget.style.background = 'var(--bg-soft)'; e.currentTarget.style.color = 'var(--text)'; e.currentTarget.style.borderColor = 'var(--accent)'; }}
                 onMouseLeave={e => { e.currentTarget.style.background = 'transparent'; e.currentTarget.style.color = 'var(--text-faint)'; e.currentTarget.style.borderColor = 'var(--border)'; }}>
                 <Plus size={14} /> Nova coluna
               </button>
             </div>
+
+            {/* Botão "Nova coluna" full-width no mobile */}
+            <button onClick={addColumn}
+              className="mobile-only"
+              style={{ width: '100%', alignItems: 'center', justifyContent: 'center', gap: 8, padding: '12px 16px', borderRadius: 8, fontSize: 13, fontWeight: 500, background: 'transparent', border: '1px dashed var(--border)', color: 'var(--text-faint)', cursor: 'pointer', marginTop: 4 }}>
+              <Plus size={14} /> Nova coluna
+            </button>
           </>
         )}
+        {/* showDash closes here - nothing extra needed since both are siblings */}
       </main>
 
+      {/* ===== MODALS ===== */}
       {currentOpenCard && (
         <CardModal card={currentOpenCard} columnId={openCardRef.columnId}
           columns={activeBoard.columns} onSave={saveCard} onDelete={deleteCard}
           onClose={() => setOpenCardRef(null)} onMove={moveCard} />
+      )}
+
+      {editingArea && (
+        <AreaSettingsModal
+          area={editingArea}
+          departments={state.departments}
+          onSave={(updated) => { saveArea(updated); setEditingArea(null); }}
+          onClose={() => setEditingArea(null)}
+          onDelete={(id) => { deleteArea(id); setEditingArea(null); }}
+          canDelete={state.areas.length > 1} />
+      )}
+
+      {editingBoard && (
+        <BoardSettingsModal
+          board={editingBoard}
+          onSave={(updated) => { saveBoard(updated); setEditingBoard(null); }}
+          onClose={() => setEditingBoard(null)}
+          onDelete={(id) => { deleteBoard(id); setEditingBoard(null); }}
+          canDelete={state.boards.filter(b => b.areaId === editingBoard.areaId).length > 1} />
       )}
     </div>
   );
 }
 
 ReactDOM.createRoot(document.getElementById('root')).render(<KanbanApp />);
+</script>
+
+<!-- ============================================================ -->
+<!-- 📱 PWA: Service Worker + Botão de instalação                  -->
+<!-- ============================================================ -->
+<script>
+  // Registra o service worker (somente em produção, em HTTPS ou localhost)
+  if ('serviceWorker' in navigator) {
+    window.addEventListener('load', () => {
+      navigator.serviceWorker.register('sw.js').catch(err => {
+        console.warn('SW registration failed:', err);
+      });
+    });
+  }
+
+  // Captura o evento beforeinstallprompt (Android/Chrome)
+  let deferredInstallPrompt = null;
+  window.addEventListener('beforeinstallprompt', (e) => {
+    e.preventDefault();
+    deferredInstallPrompt = e;
+    window.__canInstallApp = true;
+    window.dispatchEvent(new Event('pwa-installable'));
+  });
+
+  window.installPWA = async () => {
+    if (!deferredInstallPrompt) return false;
+    deferredInstallPrompt.prompt();
+    const { outcome } = await deferredInstallPrompt.userChoice;
+    deferredInstallPrompt = null;
+    window.__canInstallApp = false;
+    return outcome === 'accepted';
+  };
+
+  // Aviso quando instalado
+  window.addEventListener('appinstalled', () => {
+    window.__canInstallApp = false;
+    console.log('Kanban SESE instalado como aplicativo.');
+  });
 </script>
 </body>
 </html>
