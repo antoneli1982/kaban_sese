@@ -488,6 +488,11 @@ const ChevronRight = (p) => <Svg {...p}><polyline points="9 18 15 12 9 6"/></Svg
 const Check   = (p) => <Svg {...p}><polyline points="20 6 9 17 4 12"/></Svg>;
 const Layers  = (p) => <Svg {...p}><polygon points="12 2 2 7 12 12 22 7 12 2"/><polyline points="2 17 12 22 22 17"/><polyline points="2 12 12 17 22 12"/></Svg>;
 const Grid = (p) => <Svg {...p}><rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/><rect x="14" y="14" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/></Svg>;
+const Paperclip = (p) => <Svg {...p}><path d="M21.44 11.05l-9.19 9.19a6 6 0 0 1-8.49-8.49l9.19-9.19a4 4 0 0 1 5.66 5.66l-9.2 9.19a2 2 0 0 1-2.83-2.83l8.49-8.48"/></Svg>;
+const ExternalLink = (p) => <Svg {...p}><path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"/><polyline points="15 3 21 3 21 9"/><line x1="10" y1="14" x2="21" y2="3"/></Svg>;
+const ImageIcon = (p) => <Svg {...p}><rect x="3" y="3" width="18" height="18" rx="2" ry="2"/><circle cx="8.5" cy="8.5" r="1.5"/><polyline points="21 15 16 10 5 21"/></Svg>;
+const FileText = (p) => <Svg {...p}><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/></Svg>;
+const FileSheet = (p) => <Svg {...p}><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><rect x="8" y="12" width="8" height="6"/><line x1="8" y1="15" x2="16" y2="15"/><line x1="12" y1="12" x2="12" y2="18"/></Svg>;
 const MoreHorizontal = (p) => <Svg {...p}><circle cx="12" cy="12" r="1"/><circle cx="19" cy="12" r="1"/><circle cx="5" cy="12" r="1"/></Svg>;
 const Search  = (p) => <Svg {...p}><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></Svg>;
 const AlertCircle = (p) => <Svg {...p}><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></Svg>;
@@ -514,6 +519,29 @@ function permLabel(perm, departments) {
   if (!Array.isArray(perm) || perm.length === 0) return 'Nenhum';
   const names = departments.filter(d => perm.includes(d.id)).map(d => d.name);
   return names.length > 2 ? names.slice(0, 2).join(', ') + ` +${names.length - 2}` : names.join(', ');
+}
+
+// Detecta o tipo de anexo a partir da URL (para escolher o ícone/cor)
+function attachmentType(url) {
+  const u = (url || '').toLowerCase();
+  if (/\.(png|jpe?g|gif|webp|svg|bmp|heic)(\?|$)/.test(u) || u.includes('images')) return 'image';
+  if (/\.pdf(\?|$)/.test(u)) return 'pdf';
+  if (/\.(xls|xlsx|csv|ods)(\?|$)/.test(u) || u.includes('spreadsheets') || u.includes('/sheets/')) return 'sheet';
+  if (/\.(docx?|odt|rtf|txt)(\?|$)/.test(u) || u.includes('/document/')) return 'doc';
+  return 'link';
+}
+const ATTACH_META = {
+  image: { color: '#10b981', label: 'Imagem' },
+  pdf:   { color: '#e11d48', label: 'PDF' },
+  sheet: { color: '#22c55e', label: 'Planilha' },
+  doc:   { color: '#3b82f6', label: 'Documento' },
+  link:  { color: '#8b5cf6', label: 'Link' },
+};
+function AttachIcon({ type, size = 14 }) {
+  if (type === 'image') return <ImageIcon size={size} />;
+  if (type === 'sheet') return <FileSheet size={size} />;
+  if (type === 'pdf' || type === 'doc') return <FileText size={size} />;
+  return <ExternalLink size={size} />;
 }
 
 // ============================================================
@@ -580,6 +608,11 @@ function Card({ card, onClick, onDragStart, onDragEnd, isDragging }) {
             <span style={{ display: 'inline-flex', alignItems: 'center', gap: 4, fontSize: 11, color: dueOverdue ? 'var(--danger)' : 'var(--text-faint)' }}>
               <Calendar size={11} />
               {new Date(card.dueDate + 'T00:00:00').toLocaleDateString('pt-BR', { day: '2-digit', month: 'short' })}
+            </span>
+          )}
+          {card.attachments?.length > 0 && (
+            <span style={{ display: 'inline-flex', alignItems: 'center', gap: 3, fontSize: 11, color: 'var(--text-faint)' }} title={`${card.attachments.length} anexo(s)`}>
+              <Paperclip size={11} /> {card.attachments.length}
             </span>
           )}
         </div>
@@ -702,6 +735,90 @@ function Column({ column, onAddCard, onRenameColumn, onDeleteColumn, onCardClick
   );
 }
 
+// ============================================================
+// CARD ATTACHMENTS — anexos por link (Drive, OneDrive, etc.)
+// ============================================================
+function CardAttachments({ attachments, onChange }) {
+  const [url, setUrl] = useState('');
+  const [name, setName] = useState('');
+  const [adding, setAdding] = useState(false);
+
+  const add = () => {
+    let u = url.trim();
+    if (!u) return;
+    if (!/^https?:\/\//i.test(u)) u = 'https://' + u; // completa o http se faltar
+    const type = attachmentType(u);
+    const finalName = name.trim() || (() => {
+      try { const p = new URL(u); return decodeURIComponent(p.pathname.split('/').filter(Boolean).pop() || p.hostname); }
+      catch { return u; }
+    })();
+    onChange([...(attachments || []), { id: uid('att'), url: u, name: finalName, type, addedAt: Date.now() }]);
+    setUrl(''); setName(''); setAdding(false);
+  };
+  const remove = (id) => onChange((attachments || []).filter(a => a.id !== id));
+
+  return (
+    <div>
+      <label style={{ fontSize: 11, textTransform: 'uppercase', letterSpacing: '0.08em', fontWeight: 500, display: 'flex', alignItems: 'center', gap: 6, marginBottom: 8, color: 'var(--text-faint)' }}>
+        <Paperclip size={12} /> Anexos {attachments?.length > 0 && `(${attachments.length})`}
+      </label>
+
+      {/* Lista de anexos */}
+      {attachments?.length > 0 && (
+        <div className="flex flex-col gap-2" style={{ marginBottom: 10 }}>
+          {attachments.map(a => {
+            const meta = ATTACH_META[a.type] || ATTACH_META.link;
+            return (
+              <div key={a.id} className="flex items-center gap-2"
+                style={{ background: 'var(--surface)', border: '1px solid var(--border-soft)', borderRadius: 8, padding: '8px 10px' }}>
+                <span style={{ display: 'flex', color: meta.color, flexShrink: 0 }}><AttachIcon type={a.type} size={16} /></span>
+                <a href={a.url} target="_blank" rel="noopener noreferrer"
+                  className="truncate flex-1" style={{ fontSize: 13, color: 'var(--text)', textDecoration: 'none' }}
+                  title={a.url}>
+                  {a.name}
+                  <span style={{ fontSize: 10, color: 'var(--text-faint)', marginLeft: 6 }}>{meta.label}</span>
+                </a>
+                <a href={a.url} target="_blank" rel="noopener noreferrer" className="btn btn-ghost" style={{ padding: 5 }} title="Abrir">
+                  <ExternalLink size={13} />
+                </a>
+                <button onClick={() => remove(a.id)} className="btn btn-ghost" style={{ padding: 5, color: 'var(--danger)' }} title="Remover">
+                  <X size={13} />
+                </button>
+              </div>
+            );
+          })}
+        </div>
+      )}
+
+      {/* Form de adicionar */}
+      {adding ? (
+        <div style={{ background: 'var(--surface)', border: '1px solid var(--border-soft)', borderRadius: 8, padding: 10, display: 'flex', flexDirection: 'column', gap: 8 }}>
+          <input className="kbn" autoFocus placeholder="Cole o link do arquivo (Drive, OneDrive, site…)"
+            value={url} onChange={e => setUrl(e.target.value)}
+            onKeyDown={e => { if (e.key === 'Enter') add(); if (e.key === 'Escape') { setAdding(false); setUrl(''); setName(''); } }} />
+          <input className="kbn" placeholder="Nome (opcional) — ex: Contrato assinado.pdf"
+            value={name} onChange={e => setName(e.target.value)}
+            onKeyDown={e => { if (e.key === 'Enter') add(); }} />
+          <div className="flex gap-2">
+            <button className="btn btn-primary" style={{ flex: 1, justifyContent: 'center' }} onClick={add} disabled={!url.trim()}>
+              <Check size={13} /> Anexar
+            </button>
+            <button className="btn btn-ghost" onClick={() => { setAdding(false); setUrl(''); setName(''); }}>Cancelar</button>
+          </div>
+        </div>
+      ) : (
+        <button onClick={() => setAdding(true)}
+          style={{ width: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8, padding: '10px', borderRadius: 8, fontSize: 13, fontWeight: 500, background: 'transparent', border: '1px dashed var(--border)', color: 'var(--text-faint)', cursor: 'pointer' }}>
+          <Plus size={14} /> Adicionar anexo (link)
+        </button>
+      )}
+      <div style={{ fontSize: 10, color: 'var(--text-faint)', marginTop: 6, lineHeight: 1.5 }}>
+        Suba o arquivo no Google Drive, OneDrive ou similar, copie o link de compartilhamento e cole aqui.
+      </div>
+    </div>
+  );
+}
+
 function CardModal({ card, columnId, columns, onSave, onDelete, onClose, onMove }) {
   const [draft, setDraft] = useState(card);
   useEffect(() => { setDraft(card); }, [card]);
@@ -794,6 +911,11 @@ function CardModal({ card, columnId, columns, onSave, onDelete, onClose, onMove 
               })}
             </div>
           </div>
+
+          {/* Anexos */}
+          <CardAttachments
+            attachments={draft.attachments || []}
+            onChange={(list) => setDraft({ ...draft, attachments: list })} />
         </div>
 
         <div className="flex items-center justify-between" style={{ padding: 16, borderTop: '1px solid var(--border-soft)' }}>
@@ -2132,7 +2254,7 @@ function KanbanApp() {
   };
 
   const addCard = (columnId, title) => {
-    const card = { id: uid('card'), title, description: '', labels: [], priority: 'low', progress: 0, dueDate: '', assignee: '', createdAt: Date.now() };
+    const card = { id: uid('card'), title, description: '', labels: [], priority: 'low', progress: 0, dueDate: '', assignee: '', attachments: [], createdAt: Date.now() };
     updateBoard(activeBoard.id, b => ({ ...b, columns: b.columns.map(c => c.id === columnId ? { ...c, cards: [...c.cards, card] } : c) }));
   };
   const saveCard = (updatedCard) => {

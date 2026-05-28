@@ -4,7 +4,15 @@ Sistema Kanban em tempo real com Firebase, agora instalável como **aplicativo**
 
 ---
 
-## 🧭 Telas de visão geral (consulta)
+## 📎 Anexos nos cards
+
+Cada card tem uma seção **Anexos**. Você cola o link de um arquivo (Google Drive, OneDrive, Dropbox, ou qualquer site) e ele fica listado no card com um ícone que identifica o tipo (PDF, planilha, documento, imagem ou link), um botão para abrir e um para remover. O card mostra um indicador 📎 com a quantidade de anexos.
+
+Por que por link e não upload direto? O app guarda tudo em um único documento do Firebase, que tem limite de tamanho. Guardar arquivos inteiros ali dentro estouraria esse limite e quebraria o salvamento. Com links, qualquer arquivo (de qualquer tamanho) pode ser anexado sem pesar no banco. Para anexar: suba o arquivo no seu Drive/OneDrive, copie o link de compartilhamento e cole no card.
+
+---
+
+
 
 Além dos seletores no topo, o app tem duas telas de "hub" para navegar e consultar tudo de relance:
 
