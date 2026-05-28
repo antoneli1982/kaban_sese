@@ -540,8 +540,9 @@ function permLabel(perm, departments) {
 // ============================================================
 // ALERTAS DE PRAZO (vencido / hoje / amanhã) + SIRENE
 // ============================================================
-function dueStatus(dueDate) {
+function dueStatus(dueDate, progress) {
   if (!dueDate) return 'none';
+  if (progress === 100) return 'none';   // tarefa concluída não gera alerta
   const today = new Date(); today.setHours(0, 0, 0, 0);
   const due = new Date(dueDate + 'T00:00:00'); due.setHours(0, 0, 0, 0);
   const diff = Math.round((due - today) / 86400000);
@@ -561,7 +562,7 @@ function isUrgent(s) { return s === 'overdue' || s === 'today' || s === 'tomorro
 function collectAlerts(boards) {
   const r = { overdue: 0, today: 0, tomorrow: 0, total: 0, items: [] };
   (boards || []).forEach(b => b.columns.forEach(col => col.cards.forEach(card => {
-    const s = dueStatus(card.dueDate);
+    const s = dueStatus(card.dueDate, card.progress);
     if (isUrgent(s)) { r[s]++; r.total++; r.items.push({ ...card, _board: b.name, _status: s }); }
   })));
   return r;
@@ -645,7 +646,7 @@ function Card({ card, onClick, onDragStart, onDragEnd, isDragging }) {
   const [hover, setHover] = useState(false);
   const progress = card.progress ?? 0;
   const progOpt  = PROGRESS_OPTIONS.find(p => p.value === progress) || PROGRESS_OPTIONS[0];
-  const dStatus = dueStatus(card.dueDate);
+  const dStatus = dueStatus(card.dueDate, card.progress);
   const urgent = isUrgent(dStatus);
   const dueOverdue = dStatus === 'overdue';
   const dueMeta = DUE_META[dStatus];
