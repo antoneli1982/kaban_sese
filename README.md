@@ -4,7 +4,18 @@ Sistema Kanban em tempo real com Firebase, agora instalável como **aplicativo**
 
 ---
 
-## 🎨 Cores do layout (temas)
+## 🧭 Telas de visão geral (consulta)
+
+Além dos seletores no topo, o app tem duas telas de "hub" para navegar e consultar tudo de relance:
+
+- **Todas as áreas** — mostra cada área em um cartão com a quantidade de projetos, quadros e cards, o progresso médio e quem pode ver/editar. Acesse pelo botão **Áreas** no cabeçalho, clicando na logo, ou pelo menu ☰ no celular.
+- **Projetos da área** — ao abrir uma área, mostra todos os projetos dela em cartões com quadros, cards e progresso. Acesse clicando numa área na tela anterior, no nome da área no caminho (breadcrumb), ou pelo menu ☰.
+
+A navegação fica registrada num caminho clicável no topo de cada quadro: **Áreas › [Área] › [Projeto]** — toque em qualquer nível para voltar. Tudo se adapta à tela: no computador os cartões ficam lado a lado; no celular, empilhados em coluna única.
+
+---
+
+
 
 O app tem um seletor de tema para trocar a cor do layout na hora, com três opções:
 

@@ -251,6 +251,17 @@
     to { transform: translateX(0); }
   }
 
+  /* Grid responsivo das telas de visão geral (áreas / projetos) */
+  .overview-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(260px, 1fr));
+    gap: 14px;
+  }
+  .overview-card:hover { transform: translateY(-2px); }
+  @media (hover: none) {
+    .overview-card:active { transform: scale(0.99); }
+  }
+
   /* ===== TABLET (até 900px) ===== */
   @media (max-width: 900px) {
     .dash-grid-2 { grid-template-columns: 1fr !important; }
@@ -298,6 +309,9 @@
     /* Search input fica full no drawer */
     .search-input-wrapper { width: 100% !important; }
     .search-input-wrapper input { width: 100% !important; }
+
+    /* Overview de áreas/projetos: 1 coluna no mobile */
+    .overview-grid { grid-template-columns: 1fr !important; gap: 12px !important; }
   }
 
   /* Esconde scrollbar no carrossel horizontal no mobile p/ visual mais limpo */
@@ -473,6 +487,7 @@ const ChevronDown = (p) => <Svg {...p}><polyline points="6 9 12 15 18 9"/></Svg>
 const ChevronRight = (p) => <Svg {...p}><polyline points="9 18 15 12 9 6"/></Svg>;
 const Check   = (p) => <Svg {...p}><polyline points="20 6 9 17 4 12"/></Svg>;
 const Layers  = (p) => <Svg {...p}><polygon points="12 2 2 7 12 12 22 7 12 2"/><polyline points="2 17 12 22 22 17"/><polyline points="2 12 12 17 22 12"/></Svg>;
+const Grid = (p) => <Svg {...p}><rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/><rect x="14" y="14" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/></Svg>;
 const MoreHorizontal = (p) => <Svg {...p}><circle cx="12" cy="12" r="1"/><circle cx="19" cy="12" r="1"/><circle cx="5" cy="12" r="1"/></Svg>;
 const Search  = (p) => <Svg {...p}><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></Svg>;
 const AlertCircle = (p) => <Svg {...p}><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></Svg>;
@@ -1002,6 +1017,174 @@ function AreaSettingsModal({ area, departments, onSave, onClose, onDelete, canDe
             </button>
           </div>
         </div>
+      </div>
+    </div>
+  );
+}
+
+// ============================================================
+// AREAS OVERVIEW — tela global com todas as áreas
+// ============================================================
+function AreasOverview({ areas, projects, boards, departments, activeAreaId, onOpenArea, onEditArea, onCreateArea }) {
+  const stats = (areaId) => {
+    const aProjects = projects.filter(p => p.areaId === areaId);
+    const aBoards = boards.filter(b => b.areaId === areaId);
+    const cards = aBoards.flatMap(b => b.columns.flatMap(c => c.cards));
+    const avg = cards.length ? Math.round(cards.reduce((s, c) => s + (c.progress ?? 0), 0) / cards.length) : 0;
+    return { projects: aProjects.length, boards: aBoards.length, cards: cards.length, avg };
+  };
+
+  return (
+    <div className="fade-in">
+      <div className="flex items-center justify-between flex-wrap" style={{ marginBottom: 18, gap: 12 }}>
+        <div>
+          <h1 className="dash-title font-display" style={{ fontSize: 26, fontWeight: 700, letterSpacing: '-0.02em' }}>Todas as áreas</h1>
+          <span style={{ fontSize: 12, color: 'var(--text-faint)' }}>{areas.length} {areas.length === 1 ? 'área' : 'áreas'} · escolha uma para consultar</span>
+        </div>
+        <button className="btn btn-primary" onClick={() => { const n = prompt('Nome da nova área:'); if (n?.trim()) onCreateArea(n.trim()); }}>
+          <Plus size={14} /> Nova área
+        </button>
+      </div>
+
+      <div className="overview-grid">
+        {areas.map(a => {
+          const s = stats(a.id);
+          const isActive = a.id === activeAreaId;
+          return (
+            <div key={a.id} className="overview-card"
+              onClick={() => onOpenArea(a.id)}
+              style={{ background: 'var(--surface)', border: `1px solid ${isActive ? a.color + '88' : 'var(--border)'}`, borderRadius: 14, padding: 0, cursor: 'pointer', overflow: 'hidden', transition: 'border-color 0.15s, transform 0.1s' }}>
+              {/* faixa de cor */}
+              <div style={{ height: 5, background: a.color }} />
+              <div style={{ padding: 16 }}>
+                <div className="flex items-start justify-between" style={{ gap: 8, marginBottom: 12 }}>
+                  <div className="flex items-center gap-2 min-w-0">
+                    <span style={{ width: 12, height: 12, borderRadius: '50%', background: a.color, flexShrink: 0 }} />
+                    <span className="font-display truncate" style={{ fontSize: 17, fontWeight: 600 }}>{a.name}</span>
+                  </div>
+                  <button onClick={(e) => { e.stopPropagation(); onEditArea(a); }}
+                    className="btn btn-ghost" style={{ padding: 5, flexShrink: 0 }} title="Configurar área">
+                    <Settings size={13} />
+                  </button>
+                </div>
+
+                {/* stats */}
+                <div className="flex" style={{ gap: 14, marginBottom: 12 }}>
+                  <div><div style={{ fontSize: 20, fontWeight: 700, lineHeight: 1 }}>{s.projects}</div><div style={{ fontSize: 10, color: 'var(--text-faint)', marginTop: 2 }}>projetos</div></div>
+                  <div><div style={{ fontSize: 20, fontWeight: 700, lineHeight: 1 }}>{s.boards}</div><div style={{ fontSize: 10, color: 'var(--text-faint)', marginTop: 2 }}>quadros</div></div>
+                  <div><div style={{ fontSize: 20, fontWeight: 700, lineHeight: 1 }}>{s.cards}</div><div style={{ fontSize: 10, color: 'var(--text-faint)', marginTop: 2 }}>cards</div></div>
+                </div>
+
+                {/* progresso */}
+                <div style={{ marginBottom: 12 }}>
+                  <div className="flex items-center justify-between" style={{ marginBottom: 4 }}>
+                    <span style={{ fontSize: 10, color: 'var(--text-faint)' }}>Progresso médio</span>
+                    <span style={{ fontSize: 11, fontWeight: 600, color: a.color }}>{s.avg}%</span>
+                  </div>
+                  <div style={{ height: 6, borderRadius: 6, background: 'var(--border)', overflow: 'hidden' }}>
+                    <div style={{ height: '100%', width: `${s.avg}%`, background: a.color, borderRadius: 6, transition: 'width 0.4s' }} />
+                  </div>
+                </div>
+
+                {/* permissões */}
+                <div className="flex items-center gap-2 flex-wrap" style={{ paddingTop: 10, borderTop: '1px solid var(--border-soft)' }}>
+                  <span style={{ display: 'inline-flex', alignItems: 'center', gap: 4, fontSize: 10, color: 'var(--text-faint)' }}>
+                    {a.permissions.view === 'all' ? <GlobeIcon size={11} /> : <EyeIcon size={11} />} {permLabel(a.permissions.view, departments)}
+                  </span>
+                  <span style={{ color: 'var(--text-faint)', opacity: 0.4 }}>·</span>
+                  <span style={{ display: 'inline-flex', alignItems: 'center', gap: 4, fontSize: 10, color: 'var(--text-faint)' }}>
+                    <PenIcon size={11} /> {permLabel(a.permissions.edit, departments)}
+                  </span>
+                </div>
+              </div>
+            </div>
+          );
+        })}
+      </div>
+    </div>
+  );
+}
+
+// ============================================================
+// PROJECTS OVERVIEW — tela com todos os projetos de uma área
+// ============================================================
+function ProjectsOverview({ area, projects, boards, activeProjectId, onBackToAreas, onOpenProject, onEditProject, onCreateProject }) {
+  const stats = (projectId) => {
+    const pBoards = boards.filter(b => b.projectId === projectId);
+    const cards = pBoards.flatMap(b => b.columns.flatMap(c => c.cards));
+    const avg = cards.length ? Math.round(cards.reduce((s, c) => s + (c.progress ?? 0), 0) / cards.length) : 0;
+    return { boards: pBoards.length, cards: cards.length, avg };
+  };
+
+  return (
+    <div className="fade-in">
+      {/* breadcrumb + título */}
+      <div style={{ marginBottom: 6 }}>
+        <button onClick={onBackToAreas}
+          style={{ display: 'inline-flex', alignItems: 'center', gap: 4, background: 'none', border: 'none', cursor: 'pointer', padding: 0, color: 'var(--text-faint)' }}>
+          <Grid size={12} /> <span style={{ fontSize: 12 }}>Todas as áreas</span>
+        </button>
+      </div>
+      <div className="flex items-center justify-between flex-wrap" style={{ marginBottom: 18, gap: 12 }}>
+        <div className="flex items-center gap-2 min-w-0">
+          <span style={{ width: 14, height: 14, borderRadius: '50%', background: area.color, flexShrink: 0 }} />
+          <div className="min-w-0">
+            <h1 className="dash-title font-display truncate" style={{ fontSize: 26, fontWeight: 700, letterSpacing: '-0.02em' }}>{area.name}</h1>
+            <span style={{ fontSize: 12, color: 'var(--text-faint)' }}>{projects.length} {projects.length === 1 ? 'projeto' : 'projetos'} · escolha um para abrir</span>
+          </div>
+        </div>
+        <button className="btn btn-primary" onClick={() => { const n = prompt('Nome do novo projeto:'); if (n?.trim()) onCreateProject(n.trim()); }}>
+          <Plus size={14} /> Novo projeto
+        </button>
+      </div>
+
+      <div className="overview-grid">
+        {projects.map(p => {
+          const s = stats(p.id);
+          const isActive = p.id === activeProjectId;
+          const c = p.color || '#8b5cf6';
+          return (
+            <div key={p.id} className="overview-card"
+              onClick={() => onOpenProject(p.id)}
+              style={{ background: 'var(--surface)', border: `1px solid ${isActive ? c + '88' : 'var(--border)'}`, borderRadius: 14, overflow: 'hidden', cursor: 'pointer', transition: 'border-color 0.15s, transform 0.1s' }}>
+              <div style={{ height: 5, background: c }} />
+              <div style={{ padding: 16 }}>
+                <div className="flex items-start justify-between" style={{ gap: 8, marginBottom: 12 }}>
+                  <div className="flex items-center gap-2 min-w-0">
+                    <FolderIcon size={15} style={{ color: c, flexShrink: 0 }} />
+                    <span className="font-display truncate" style={{ fontSize: 17, fontWeight: 600 }}>{p.name}</span>
+                  </div>
+                  <button onClick={(e) => { e.stopPropagation(); onEditProject(p); }}
+                    className="btn btn-ghost" style={{ padding: 5, flexShrink: 0 }} title="Configurar projeto">
+                    <Settings size={13} />
+                  </button>
+                </div>
+
+                <div className="flex" style={{ gap: 14, marginBottom: 12 }}>
+                  <div><div style={{ fontSize: 20, fontWeight: 700, lineHeight: 1 }}>{s.boards}</div><div style={{ fontSize: 10, color: 'var(--text-faint)', marginTop: 2 }}>quadros</div></div>
+                  <div><div style={{ fontSize: 20, fontWeight: 700, lineHeight: 1 }}>{s.cards}</div><div style={{ fontSize: 10, color: 'var(--text-faint)', marginTop: 2 }}>cards</div></div>
+                </div>
+
+                <div>
+                  <div className="flex items-center justify-between" style={{ marginBottom: 4 }}>
+                    <span style={{ fontSize: 10, color: 'var(--text-faint)' }}>Progresso médio</span>
+                    <span style={{ fontSize: 11, fontWeight: 600, color: c }}>{s.avg}%</span>
+                  </div>
+                  <div style={{ height: 6, borderRadius: 6, background: 'var(--border)', overflow: 'hidden' }}>
+                    <div style={{ height: '100%', width: `${s.avg}%`, background: c, borderRadius: 6, transition: 'width 0.4s' }} />
+                  </div>
+                </div>
+              </div>
+            </div>
+          );
+        })}
+
+        {/* card de adicionar */}
+        <button onClick={() => { const n = prompt('Nome do novo projeto:'); if (n?.trim()) onCreateProject(n.trim()); }}
+          className="overview-card"
+          style={{ background: 'transparent', border: '1px dashed var(--border)', borderRadius: 14, cursor: 'pointer', minHeight: 150, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: 8, color: 'var(--text-faint)' }}>
+          <Plus size={22} /> <span style={{ fontSize: 13 }}>Novo projeto</span>
+        </button>
       </div>
     </div>
   );
@@ -1667,7 +1850,8 @@ function KanbanApp() {
   const [editingArea, setEditingArea] = useState(null);
   const [editingProject, setEditingProject] = useState(null);
   const [editingBoard, setEditingBoard] = useState(null);
-  const [showDash, setShowDash] = useState(false);
+  const [view, setView] = useState('board'); // 'board' | 'dashboard' | 'areas' | 'projects'
+  const showDash = view === 'dashboard';
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [canInstall, setCanInstall] = useState(!!window.__canInstallApp);
   const [theme, setTheme] = useState(() => {
@@ -2072,17 +2256,26 @@ function KanbanApp() {
       <header className="app-header flex items-center justify-between sticky top-0 z-30"
         style={{ padding: '12px 20px', background: 'color-mix(in srgb, var(--bg) 85%, transparent)', backdropFilter: 'blur(10px)', borderBottom: '1px solid var(--border-soft)' }}>
         <div className="header-left flex items-center gap-3">
-          <div className="flex items-center gap-3">
+          <button onClick={() => setView('areas')} title="Início · todas as áreas"
+            className="flex items-center gap-3" style={{ background: 'none', border: 'none', cursor: 'pointer', padding: 0 }}>
             <div className="brand-mini" style={{ width: 64, height: 30, background: '#ffffff', padding: '4px 6px', borderRadius: 6, display: 'flex', alignItems: 'center', justifyContent: 'center', overflow: 'hidden' }}>
               <img src={LOGO_DATA_URI} alt="SESE" style={{ width: '100%', height: '100%', objectFit: 'contain', display: 'block' }} />
             </div>
-            <div className="brand-text-block flex flex-col" style={{ lineHeight: 1.2 }}>
-              <span className="font-display" style={{ fontSize: 16, fontWeight: 600 }}>Kanban SESE</span>
+            <div className="brand-text-block flex flex-col" style={{ lineHeight: 1.2, textAlign: 'left' }}>
+              <span className="font-display" style={{ fontSize: 16, fontWeight: 600, color: 'var(--text)' }}>Kanban SESE</span>
               <span className="font-mono" style={{ fontSize: 10, textTransform: 'uppercase', letterSpacing: '0.12em', color: 'var(--text-faint)' }}>tempo real · firebase</span>
             </div>
-          </div>
+          </button>
 
           <div className="header-divider" style={{ width: 1, height: 24, background: 'var(--border)' }} />
+
+          {/* Botão visão geral (Áreas) */}
+          <button onClick={() => setView('areas')}
+            className="btn hide-on-mobile"
+            title="Ver todas as áreas"
+            style={{ padding: '7px 12px', background: view === 'areas' ? 'var(--accent)' : 'transparent', color: view === 'areas' ? 'var(--accent-text)' : 'var(--text-dim)', border: `1px solid ${view === 'areas' ? 'var(--accent)' : 'var(--border)'}` }}>
+            <Grid size={14} /> Áreas
+          </button>
 
           {/* Area Switcher */}
           <AreaSwitcher
@@ -2140,7 +2333,7 @@ function KanbanApp() {
 
           {/* Dashboard toggle */}
           <button
-            onClick={() => setShowDash(d => !d)}
+            onClick={() => setView(v => v === 'dashboard' ? 'board' : 'dashboard')}
             className="btn"
             style={{ background: showDash ? 'var(--accent)' : 'transparent', color: showDash ? 'var(--accent-text)' : 'var(--text-dim)', border: `1px solid ${showDash ? 'var(--accent)' : 'var(--border)'}` }}>
             <BarChart2 size={13} /> Dashboard
@@ -2165,7 +2358,7 @@ function KanbanApp() {
           </div>
           {/* Botão Dashboard com label */}
           <button
-            onClick={() => setShowDash(d => !d)}
+            onClick={() => setView(v => v === 'dashboard' ? 'board' : 'dashboard')}
             className="btn"
             style={{ padding: '7px 10px', fontSize: 12, background: showDash ? 'var(--accent)' : 'transparent', color: showDash ? 'var(--accent-text)' : 'var(--text-dim)', border: `1px solid ${showDash ? 'var(--accent)' : 'var(--border)'}` }}>
             <BarChart2 size={14} /> Dashboard
@@ -2243,12 +2436,27 @@ function KanbanApp() {
                 </div>
               </div>
 
+              {/* Navegação por telas */}
+              <div>
+                <label style={{ fontSize: 10, textTransform: 'uppercase', letterSpacing: '0.1em', fontWeight: 600, color: 'var(--text-faint)', display: 'block', marginBottom: 6 }}>Ir para</label>
+                <div className="flex flex-col gap-2">
+                  <button className="btn" style={{ justifyContent: 'flex-start', padding: '10px 14px', background: view === 'areas' ? 'var(--accent)' : 'transparent', color: view === 'areas' ? 'var(--accent-text)' : 'var(--text-dim)', border: `1px solid ${view === 'areas' ? 'var(--accent)' : 'var(--border)'}` }}
+                    onClick={() => { setView('areas'); setMobileMenuOpen(false); }}>
+                    <Grid size={14} /> Todas as áreas
+                  </button>
+                  <button className="btn" style={{ justifyContent: 'flex-start', padding: '10px 14px', background: view === 'projects' ? 'var(--accent)' : 'transparent', color: view === 'projects' ? 'var(--accent-text)' : 'var(--text-dim)', border: `1px solid ${view === 'projects' ? 'var(--accent)' : 'var(--border)'}` }}
+                    onClick={() => { setView('projects'); setMobileMenuOpen(false); }}>
+                    <FolderIcon size={14} /> Projetos de {activeArea?.name || 'área'}
+                  </button>
+                </div>
+              </div>
+
               {/* Ações */}
               <div>
                 <label style={{ fontSize: 10, textTransform: 'uppercase', letterSpacing: '0.1em', fontWeight: 600, color: 'var(--text-faint)', display: 'block', marginBottom: 6 }}>Ações</label>
                 <div className="flex flex-col gap-2">
                   <button className="btn btn-outline" style={{ justifyContent: 'flex-start', padding: '10px 14px' }}
-                    onClick={() => { setShowDash(d => !d); setMobileMenuOpen(false); }}>
+                    onClick={() => { setView(v => v === 'dashboard' ? 'board' : 'dashboard'); setMobileMenuOpen(false); }}>
                     <BarChart2 size={14} /> {showDash ? 'Voltar ao board' : 'Abrir Dashboard'}
                   </button>
                   <button className="btn btn-outline" style={{ justifyContent: 'flex-start', padding: '10px 14px' }}
@@ -2301,7 +2509,7 @@ function KanbanApp() {
                       const isActive = b.id === state.activeBoardId;
                       return (
                         <button key={b.id}
-                          onClick={() => { setState(s => ({ ...s, activeBoardId: b.id })); setShowDash(false); setMobileMenuOpen(false); }}
+                          onClick={() => { setState(s => ({ ...s, activeBoardId: b.id })); setView('board'); setMobileMenuOpen(false); }}
                           style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '9px 12px', borderRadius: 8, fontSize: 13,
                             background: isActive ? 'var(--surface)' : 'transparent',
                             border: `1px solid ${isActive ? (b.color || '#3b5cff') + '55' : 'var(--border-soft)'}`,
@@ -2407,10 +2615,33 @@ function KanbanApp() {
 
       {/* ===== MAIN ===== */}
       <main className="app-main" style={{ padding: '20px' }}>
-        {showDash && state && activeArea && (
+        {view === 'areas' && state && (
+          <AreasOverview
+            areas={state.areas} projects={state.projects || []} boards={state.boards}
+            departments={state.departments}
+            activeAreaId={state.activeAreaId}
+            onOpenArea={(id) => { selectArea(id); setView('projects'); }}
+            onEditArea={(a) => setEditingArea(a)}
+            onCreateArea={createArea} />
+        )}
+
+        {view === 'projects' && state && activeArea && (
+          <ProjectsOverview
+            area={activeArea}
+            projects={(state.projects || []).filter(p => p.areaId === activeArea.id)}
+            boards={state.boards}
+            activeProjectId={state.activeProjectId}
+            onBackToAreas={() => setView('areas')}
+            onOpenProject={(id) => { selectProject(id); setView('board'); }}
+            onEditProject={(p) => setEditingProject(p)}
+            onCreateProject={createProject} />
+        )}
+
+        {view === 'dashboard' && state && activeArea && (
           <Dashboard boards={state.boards} areas={state.areas} projects={state.projects || []} activeAreaId={state.activeAreaId} activeProjectId={state.activeProjectId} activeBoardId={state.activeBoardId} />
         )}
-        {!showDash && activeBoard && activeArea && (
+
+        {view === 'board' && activeBoard && activeArea && (
           <>
             {/* Board title row + Permissions panel */}
             <div className="board-meta-row flex items-start justify-between" style={{ marginBottom: 16, gap: 16 }}>
@@ -2425,10 +2656,21 @@ function KanbanApp() {
                     {activeBoard.columns.reduce((acc, c) => acc + c.cards.length, 0)} cards · {activeBoard.columns.length} colunas
                   </span>
                 </div>
-                {/* Area › Project breadcrumb */}
+                {/* Breadcrumb clicável: Áreas › Área › Projeto */}
                 <div className="flex items-center gap-1 flex-wrap" style={{ marginTop: 4 }}>
-                  <span style={{ width: 6, height: 6, borderRadius: '50%', background: activeArea.color }} />
-                  <span style={{ fontSize: 11, color: 'var(--text-faint)' }}>{activeArea.name}</span>
+                  <button onClick={() => setView('areas')}
+                    style={{ display: 'flex', alignItems: 'center', gap: 3, background: 'none', border: 'none', cursor: 'pointer', padding: 0 }}
+                    title="Ver todas as áreas">
+                    <Grid size={11} style={{ color: 'var(--text-faint)' }} />
+                    <span style={{ fontSize: 11, color: 'var(--text-faint)' }}>Áreas</span>
+                  </button>
+                  <ChevronRight size={11} style={{ color: 'var(--text-faint)', opacity: 0.5 }} />
+                  <button onClick={() => setView('projects')}
+                    style={{ display: 'flex', alignItems: 'center', gap: 4, background: 'none', border: 'none', cursor: 'pointer', padding: 0 }}
+                    title="Ver projetos da área">
+                    <span style={{ width: 6, height: 6, borderRadius: '50%', background: activeArea.color }} />
+                    <span style={{ fontSize: 11, color: 'var(--text-faint)' }}>{activeArea.name}</span>
+                  </button>
                   {activeProject && (
                     <>
                       <ChevronRight size={11} style={{ color: 'var(--text-faint)', opacity: 0.5 }} />
@@ -2478,7 +2720,6 @@ function KanbanApp() {
             </button>
           </>
         )}
-        {/* showDash closes here - nothing extra needed since both are siblings */}
       </main>
 
       {/* ===== MODALS ===== */}
