@@ -1547,6 +1547,7 @@ function Card({
   const urgent = isUrgent(dStatus);
   const dueOverdue = dStatus === 'overdue';
   const dueMeta = DUE_META[dStatus];
+  const w5h2Filled = countW5H2(card.w5h2);
   return /*#__PURE__*/React.createElement("div", {
     draggable: true,
     onDragStart: onDragStart,
@@ -1685,7 +1686,19 @@ function Card({
     title: `${card.attachments.length} anexo(s)`
   }, /*#__PURE__*/React.createElement(Paperclip, {
     size: 11
-  }), " ", card.attachments.length)), card.assignee && /*#__PURE__*/React.createElement("div", {
+  }), " ", card.attachments.length), w5h2Filled > 0 && /*#__PURE__*/React.createElement("span", {
+    style: {
+      display: 'inline-flex',
+      alignItems: 'center',
+      gap: 3,
+      fontSize: 11,
+      color: 'var(--accent)',
+      fontWeight: 600
+    },
+    title: `5W2H preenchido: ${w5h2Filled}/7 campos`
+  }, /*#__PURE__*/React.createElement(FileText, {
+    size: 11
+  }), " 5W2H")), card.assignee && /*#__PURE__*/React.createElement("div", {
     title: card.assignee,
     style: {
       display: 'flex',
@@ -2159,6 +2172,56 @@ function CardAttachments({
     }
   }, "Suba o arquivo no Google Drive, OneDrive ou similar, copie o link de compartilhamento e cole aqui."));
 }
+
+// ============================================================
+// 5W2H — definição dos 7 campos (usado dentro do CardModal e no mini-card)
+// ============================================================
+const W5H2_FIELDS = [{
+  key: 'what',
+  w: 'O quê',
+  en: 'What',
+  hint: 'O que será feito? (a ação/entrega)',
+  long: true
+}, {
+  key: 'why',
+  w: 'Por quê',
+  en: 'Why',
+  hint: 'Por que precisa ser feito? (justificativa)',
+  long: true
+}, {
+  key: 'where',
+  w: 'Onde',
+  en: 'Where',
+  hint: 'Onde será feito? (local / setor / sistema)',
+  long: false
+}, {
+  key: 'when',
+  w: 'Quando',
+  en: 'When',
+  hint: 'Quando? (prazo / etapa)',
+  long: false
+}, {
+  key: 'who',
+  w: 'Quem',
+  en: 'Who',
+  hint: 'Quem é o responsável?',
+  long: false
+}, {
+  key: 'how',
+  w: 'Como',
+  en: 'How',
+  hint: 'Como será feito? (método / passos)',
+  long: true
+}, {
+  key: 'howMuch',
+  w: 'Quanto',
+  en: 'How much',
+  hint: 'Quanto vai custar? (recursos / valor)',
+  long: false
+}];
+function countW5H2(w) {
+  return w ? Object.values(w).filter(v => v && String(v).trim()).length : 0;
+}
 function CardModal({
   card,
   columnId,
@@ -2169,10 +2232,24 @@ function CardModal({
   onMove
 }) {
   const [draft, setDraft] = useState(card);
+  const [showW5H2, setShowW5H2] = useState(false);
+  const [editField, setEditField] = useState(null); // chave do campo 5W2H aberto no editor grande
   useEffect(() => {
     setDraft(card);
+    // Abre a seção 5W2H automaticamente se o card já tiver algum campo preenchido.
+    setShowW5H2(countW5H2(card?.w5h2) > 0);
+    setEditField(null);
   }, [card]);
   if (!card) return null;
+  const setW5H2 = (key, val) => setDraft(d => ({
+    ...d,
+    w5h2: {
+      ...(d.w5h2 || {}),
+      [key]: val
+    }
+  }));
+  const w5h2Count = countW5H2(draft.w5h2);
+  const currentEditField = editField ? W5H2_FIELDS.find(f => f.key === editField) : null;
   const toggleLabel = lid => {
     const labels = draft.labels || [];
     setDraft({
@@ -2184,7 +2261,7 @@ function CardModal({
     onSave(draft);
     onClose();
   };
-  return /*#__PURE__*/React.createElement("div", {
+  return /*#__PURE__*/React.createElement(React.Fragment, null, /*#__PURE__*/React.createElement("div", {
     className: "fixed inset-0 z-50 flex items-center justify-center",
     style: {
       padding: 16,
@@ -2427,7 +2504,115 @@ function CardModal({
       ...draft,
       attachments: list
     })
-  })), /*#__PURE__*/React.createElement("div", {
+  }), /*#__PURE__*/React.createElement("div", {
+    style: {
+      border: '1px solid var(--border)',
+      borderRadius: 10,
+      overflow: 'hidden'
+    }
+  }, /*#__PURE__*/React.createElement("button", {
+    type: "button",
+    onClick: () => setShowW5H2(v => !v),
+    className: "flex items-center justify-between hover-bg",
+    style: {
+      width: '100%',
+      padding: '12px 14px',
+      background: 'var(--surface)',
+      cursor: 'pointer',
+      border: 'none',
+      textAlign: 'left'
+    }
+  }, /*#__PURE__*/React.createElement("div", {
+    className: "flex items-center gap-2"
+  }, /*#__PURE__*/React.createElement(FileText, {
+    size: 16,
+    style: {
+      color: 'var(--accent)',
+      flexShrink: 0
+    }
+  }), /*#__PURE__*/React.createElement("div", null, /*#__PURE__*/React.createElement("div", {
+    style: {
+      fontSize: 13,
+      fontWeight: 600,
+      color: 'var(--text)'
+    }
+  }, "5W2H"), /*#__PURE__*/React.createElement("div", {
+    style: {
+      fontSize: 11,
+      color: 'var(--text-faint)'
+    }
+  }, "Detalhamento do card"))), /*#__PURE__*/React.createElement("div", {
+    className: "flex items-center gap-2"
+  }, w5h2Count > 0 && /*#__PURE__*/React.createElement("span", {
+    style: {
+      fontSize: 11,
+      fontWeight: 600,
+      color: 'var(--accent)',
+      background: 'var(--accent-soft)',
+      padding: '2px 8px',
+      borderRadius: 20
+    }
+  }, w5h2Count, "/7"), /*#__PURE__*/React.createElement(ChevronRight, {
+    size: 16,
+    style: {
+      color: 'var(--text-faint)',
+      transform: showW5H2 ? 'rotate(90deg)' : 'none',
+      transition: 'transform 0.15s'
+    }
+  }))), showW5H2 && /*#__PURE__*/React.createElement("div", {
+    style: {
+      padding: 10,
+      display: 'flex',
+      flexDirection: 'column',
+      gap: 6,
+      borderTop: '1px solid var(--border-soft)'
+    }
+  }, W5H2_FIELDS.map(f => {
+    const val = (draft.w5h2 || {})[f.key] || '';
+    return /*#__PURE__*/React.createElement("button", {
+      key: f.key,
+      type: "button",
+      onClick: () => setEditField(f.key),
+      className: "hover-bg",
+      style: {
+        display: 'flex',
+        alignItems: 'center',
+        gap: 10,
+        width: '100%',
+        textAlign: 'left',
+        padding: '9px 11px',
+        borderRadius: 8,
+        border: '1px solid var(--border-soft)',
+        background: 'var(--bg-soft)',
+        cursor: 'pointer'
+      }
+    }, /*#__PURE__*/React.createElement("span", {
+      style: {
+        fontSize: 12,
+        fontWeight: 700,
+        color: 'var(--accent)',
+        minWidth: 60,
+        flexShrink: 0
+      }
+    }, f.w, "?"), /*#__PURE__*/React.createElement("span", {
+      style: {
+        flex: 1,
+        minWidth: 0,
+        fontSize: 12,
+        color: val ? 'var(--text-dim)' : 'var(--text-faint)',
+        fontStyle: val ? 'normal' : 'italic',
+        whiteSpace: 'nowrap',
+        overflow: 'hidden',
+        textOverflow: 'ellipsis'
+      }
+    }, val || `Clique para preencher — ${f.hint}`), /*#__PURE__*/React.createElement(PenIcon, {
+      size: 13,
+      style: {
+        color: 'var(--text-faint)',
+        flexShrink: 0
+      }
+    }));
+  })))), /*#__PURE__*/React.createElement("div", {
     className: "flex items-center justify-between",
     style: {
       padding: 16,
@@ -2453,7 +2638,96 @@ function CardModal({
     onClick: save
   }, /*#__PURE__*/React.createElement(Check, {
     size: 13
-  }), " Salvar")))));
+  }), " Salvar"))))), currentEditField && /*#__PURE__*/React.createElement("div", {
+    className: "fixed inset-0 flex items-center justify-center",
+    style: {
+      zIndex: 60,
+      padding: 16,
+      background: 'rgba(0,0,0,0.72)',
+      backdropFilter: 'blur(4px)'
+    },
+    onClick: () => setEditField(null)
+  }, /*#__PURE__*/React.createElement("div", {
+    className: "modal-in flex flex-col",
+    style: {
+      background: 'var(--bg-soft)',
+      border: '1px solid var(--border)',
+      width: '100%',
+      maxWidth: 560,
+      maxHeight: '90vh',
+      borderRadius: 12,
+      boxShadow: '0 20px 60px rgba(0,0,0,0.5)'
+    },
+    onClick: e => e.stopPropagation()
+  }, /*#__PURE__*/React.createElement("div", {
+    style: {
+      padding: '18px 20px 12px',
+      borderBottom: '1px solid var(--border-soft)'
+    }
+  }, /*#__PURE__*/React.createElement("div", {
+    className: "flex items-center justify-between"
+  }, /*#__PURE__*/React.createElement("div", {
+    className: "flex items-center gap-2"
+  }, /*#__PURE__*/React.createElement(FileText, {
+    size: 16,
+    style: {
+      color: 'var(--accent)',
+      flexShrink: 0
+    }
+  }), /*#__PURE__*/React.createElement("span", {
+    style: {
+      fontSize: 18,
+      fontWeight: 700,
+      color: 'var(--accent)'
+    }
+  }, currentEditField.w, "?"), /*#__PURE__*/React.createElement("span", {
+    style: {
+      fontSize: 12,
+      color: 'var(--text-faint)'
+    }
+  }, "(", currentEditField.en, ")")), /*#__PURE__*/React.createElement("button", {
+    onClick: () => setEditField(null),
+    className: "btn btn-ghost",
+    style: {
+      padding: 6
+    }
+  }, /*#__PURE__*/React.createElement(X, {
+    size: 16
+  }))), /*#__PURE__*/React.createElement("div", {
+    style: {
+      fontSize: 12,
+      color: 'var(--text-faint)',
+      marginTop: 6
+    }
+  }, currentEditField.hint)), /*#__PURE__*/React.createElement("div", {
+    style: {
+      padding: 20
+    }
+  }, /*#__PURE__*/React.createElement("textarea", {
+    className: "kbn",
+    autoFocus: true,
+    style: {
+      width: '100%',
+      minHeight: 220,
+      resize: 'vertical',
+      fontSize: 14,
+      lineHeight: 1.5
+    },
+    value: (draft.w5h2 || {})[currentEditField.key] || '',
+    onChange: e => setW5H2(currentEditField.key, e.target.value),
+    placeholder: `Escreva aqui — ${currentEditField.hint}`
+  })), /*#__PURE__*/React.createElement("div", {
+    className: "flex items-center justify-end gap-2",
+    style: {
+      padding: 16,
+      borderTop: '1px solid var(--border-soft)'
+    }
+  }, /*#__PURE__*/React.createElement("button", {
+    className: "btn btn-primary",
+    onClick: () => setEditField(null)
+  }, /*#__PURE__*/React.createElement(Check, {
+    size: 13
+  }), " Concluir")))));
 }
 
 // ============================================================
