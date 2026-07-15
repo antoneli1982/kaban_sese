@@ -2232,13 +2232,15 @@ function CardModal({
   onMove
 }) {
   const [draft, setDraft] = useState(card);
-  const [showW5H2, setShowW5H2] = useState(true);
+  const [showW5H2, setShowW5H2] = useState(false);
   const [editField, setEditField] = useState(null); // chave do campo 5W2H aberto no editor grande
+  const [openField, setOpenField] = useState(null); // chave do campo 5W2H expandido inline para edição
   useEffect(() => {
     setDraft(card);
-    // Abre a seção 5W2H automaticamente se o card já tiver algum campo preenchido.
-    setShowW5H2(true);
+    // Abre a seção 5W2H automaticamente só se o card já tiver algum campo preenchido.
+    setShowW5H2(countW5H2(card.w5h2) > 0);
     setEditField(null);
+    setOpenField(null);
   }, [card]);
   if (!card) return null;
   const setW5H2 = (key, val) => setDraft(d => ({
@@ -2361,31 +2363,76 @@ function CardModal({
       padding: 14,
       background: 'var(--accent-soft)'
     }
-  }, /*#__PURE__*/React.createElement("div", {
+  }, /*#__PURE__*/React.createElement("button", {
+    type: "button",
+    onClick: () => setShowW5H2(v => !v),
     className: "flex items-center justify-between",
-    style: { marginBottom: 12 }
+    style: {
+      width: '100%',
+      background: 'none',
+      border: 'none',
+      padding: 0,
+      cursor: 'pointer',
+      textAlign: 'left'
+    }
   }, /*#__PURE__*/React.createElement("div", null, /*#__PURE__*/React.createElement("div", {
     style: { fontSize: 15, fontWeight: 700, color: 'var(--text)' }
   }, "Plano de Ação 5W2H"), /*#__PURE__*/React.createElement("div", {
     style: { fontSize: 11, color: 'var(--text-dim)', marginTop: 2 }
-  }, "Preencha os sete campos diretamente abaixo")), /*#__PURE__*/React.createElement("span", {
+  }, showW5H2 ? "Preencha os sete campos abaixo" : "Opcional \u2014 clique para abrir e preencher")), /*#__PURE__*/React.createElement("div", {
+    className: "flex items-center gap-2"
+  }, /*#__PURE__*/React.createElement("span", {
     style: { fontSize: 11, fontWeight: 700, color: 'var(--accent)' }
-  }, w5h2Count, "/7")), /*#__PURE__*/React.createElement("div", {
-    style: { display: 'grid', gridTemplateColumns: '1fr', gap: 10 }
-  }, W5H2_FIELDS.map(f => /*#__PURE__*/React.createElement("div", { key: f.key }, /*#__PURE__*/React.createElement("label", {
-    style: { fontSize: 12, fontWeight: 700, color: 'var(--accent)', display: 'block', marginBottom: 5 }
-  }, f.w, "? — ", f.en), f.long ? /*#__PURE__*/React.createElement("textarea", {
-    className: "kbn",
-    style: { minHeight: 72, resize: 'vertical' },
-    value: (draft.w5h2 || {})[f.key] || '',
-    onChange: e => setW5H2(f.key, e.target.value),
-    placeholder: f.hint
-  }) : /*#__PURE__*/React.createElement("input", {
-    className: "kbn",
-    value: (draft.w5h2 || {})[f.key] || '',
-    onChange: e => setW5H2(f.key, e.target.value),
-    placeholder: f.hint
-  }))))), /*#__PURE__*/React.createElement("div", null, /*#__PURE__*/React.createElement("label", {
+  }, w5h2Count, "/7"), /*#__PURE__*/React.createElement(ChevronRight, {
+    size: 18,
+    style: {
+      color: 'var(--accent)',
+      flexShrink: 0,
+      transform: showW5H2 ? 'rotate(90deg)' : 'none',
+      transition: 'transform 0.15s'
+    }
+  }))), showW5H2 && /*#__PURE__*/React.createElement("div", {
+    style: { display: 'grid', gridTemplateColumns: '1fr', gap: 10, marginTop: 14 }
+  }, W5H2_FIELDS.map(f => {
+    const isOpen = openField === f.key;
+    const val = (draft.w5h2 || {})[f.key] || '';
+    return /*#__PURE__*/React.createElement("div", {
+      key: f.key,
+      style: { border: '1px solid var(--border-soft)', borderRadius: 8, overflow: 'hidden', background: 'var(--bg-soft)' }
+    }, /*#__PURE__*/React.createElement("button", {
+      type: "button",
+      onClick: () => setOpenField(isOpen ? null : f.key),
+      className: "flex items-center justify-between hover-bg",
+      style: { width: '100%', padding: '10px 11px', background: 'transparent', border: 'none', cursor: 'pointer', textAlign: 'left' }
+    }, /*#__PURE__*/React.createElement("div", {
+      className: "flex items-center gap-2",
+      style: { minWidth: 0, flex: 1 }
+    }, /*#__PURE__*/React.createElement("span", {
+      style: { fontSize: 12, fontWeight: 700, color: 'var(--accent)', flexShrink: 0 }
+    }, f.w, "?"), !isOpen && /*#__PURE__*/React.createElement("span", {
+      style: { fontSize: 12, color: val ? 'var(--text-dim)' : 'var(--text-faint)', fontStyle: val ? 'normal' : 'italic', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis', minWidth: 0 }
+    }, val || f.hint)), /*#__PURE__*/React.createElement(ChevronRight, {
+      size: 15,
+      style: { color: 'var(--text-faint)', flexShrink: 0, transform: isOpen ? 'rotate(90deg)' : 'none', transition: 'transform 0.15s' }
+    })), isOpen && /*#__PURE__*/React.createElement("div", {
+      style: { padding: '0 11px 11px' }
+    }, /*#__PURE__*/React.createElement("label", {
+      style: { fontSize: 11, color: 'var(--text-dim)', display: 'block', marginBottom: 6 }
+    }, f.en, " \u2014 ", f.hint), f.long ? /*#__PURE__*/React.createElement("textarea", {
+      className: "kbn",
+      autoFocus: true,
+      style: { minHeight: 80, resize: 'vertical' },
+      value: val,
+      onChange: e => setW5H2(f.key, e.target.value),
+      placeholder: f.hint
+    }) : /*#__PURE__*/React.createElement("input", {
+      className: "kbn",
+      autoFocus: true,
+      value: val,
+      onChange: e => setW5H2(f.key, e.target.value),
+      placeholder: f.hint
+    })));
+  }))), /*#__PURE__*/React.createElement("div", null, /*#__PURE__*/React.createElement("label", {
     style: {
       fontSize: 11,
       textTransform: 'uppercase',
