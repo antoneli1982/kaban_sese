@@ -1,7 +1,10 @@
 // ============================================================
 // Service Worker - Kanban SESE PWA
 // ============================================================
-const CACHE_VERSION = 'kanban-sese-v1';
+// v2: a versão do cache foi trocada (força atualização em todos os
+// navegadores) e o HTML passou a ser buscado SEMPRE da rede quando online
+// (network-first), evitando que o app fique preso numa versão antiga.
+const CACHE_VERSION = 'kanban-sese-v2';
 const APP_SHELL = [
   './',
   './index.html',
@@ -75,8 +78,30 @@ self.addEventListener('fetch', (event) => {
     return;
   }
 
-  // Mesma origem (app shell): stale-while-revalidate
+  // Mesma origem
   if (url.origin === self.location.origin) {
+    const isHTML = req.mode === 'navigate'
+      || url.pathname === '/' || url.pathname.endsWith('/')
+      || url.pathname.endsWith('.html');
+
+    // HTML/navegação: REDE PRIMEIRO. Sempre pega a versão mais nova quando online;
+    // usa o cache só como reserva quando estiver offline.
+    if (isHTML) {
+      event.respondWith(
+        fetch(req, { cache: 'no-store' }).then(res => {
+          if (res && res.status === 200) {
+            const clone = res.clone();
+            caches.open(CACHE_VERSION).then(c => c.put(req, clone));
+          }
+          return res;
+        }).catch(() =>
+          caches.match(req).then(c => c || caches.match('./index.html'))
+        )
+      );
+      return;
+    }
+
+    // Demais arquivos da app (ícones, manifest): stale-while-revalidate
     event.respondWith(
       caches.match(req).then(cached => {
         const network = fetch(req).then(res => {
