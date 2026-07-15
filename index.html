@@ -8,7 +8,7 @@
 <!-- ============================================================ -->
 <!-- 📱 PWA - Aplicativo instalável                                -->
 <!-- ============================================================ -->
-<link rel="manifest" href="manifest.json">
+<link rel="manifest" href="manifest.json?v=3">
 <meta name="theme-color" content="#3b5cff">
 <meta name="background-color" content="#0a0a0b">
 <meta name="description" content="Sistema de gestão Kanban em tempo real para o time SESE.">
@@ -2232,12 +2232,12 @@ function CardModal({
   onMove
 }) {
   const [draft, setDraft] = useState(card);
-  const [showW5H2, setShowW5H2] = useState(false);
+  const [showW5H2, setShowW5H2] = useState(true);
   const [editField, setEditField] = useState(null); // chave do campo 5W2H aberto no editor grande
   useEffect(() => {
     setDraft(card);
     // Abre a seção 5W2H automaticamente se o card já tiver algum campo preenchido.
-    setShowW5H2(countW5H2(card?.w5h2) > 0);
+    setShowW5H2(true);
     setEditField(null);
   }, [card]);
   if (!card) return null;
@@ -2354,7 +2354,38 @@ function CardModal({
       description: e.target.value
     }),
     placeholder: "Detalhes, contexto, links…"
-  })), /*#__PURE__*/React.createElement("div", null, /*#__PURE__*/React.createElement("label", {
+  })), /*#__PURE__*/React.createElement("div", {
+    style: {
+      border: '1px solid var(--accent)',
+      borderRadius: 10,
+      padding: 14,
+      background: 'var(--accent-soft)'
+    }
+  }, /*#__PURE__*/React.createElement("div", {
+    className: "flex items-center justify-between",
+    style: { marginBottom: 12 }
+  }, /*#__PURE__*/React.createElement("div", null, /*#__PURE__*/React.createElement("div", {
+    style: { fontSize: 15, fontWeight: 700, color: 'var(--text)' }
+  }, "Plano de Ação 5W2H"), /*#__PURE__*/React.createElement("div", {
+    style: { fontSize: 11, color: 'var(--text-dim)', marginTop: 2 }
+  }, "Preencha os sete campos diretamente abaixo")), /*#__PURE__*/React.createElement("span", {
+    style: { fontSize: 11, fontWeight: 700, color: 'var(--accent)' }
+  }, w5h2Count, "/7")), /*#__PURE__*/React.createElement("div", {
+    style: { display: 'grid', gridTemplateColumns: '1fr', gap: 10 }
+  }, W5H2_FIELDS.map(f => /*#__PURE__*/React.createElement("div", { key: f.key }, /*#__PURE__*/React.createElement("label", {
+    style: { fontSize: 12, fontWeight: 700, color: 'var(--accent)', display: 'block', marginBottom: 5 }
+  }, f.w, "? — ", f.en), f.long ? /*#__PURE__*/React.createElement("textarea", {
+    className: "kbn",
+    style: { minHeight: 72, resize: 'vertical' },
+    value: (draft.w5h2 || {})[f.key] || '',
+    onChange: e => setW5H2(f.key, e.target.value),
+    placeholder: f.hint
+  }) : /*#__PURE__*/React.createElement("input", {
+    className: "kbn",
+    value: (draft.w5h2 || {})[f.key] || '',
+    onChange: e => setW5H2(f.key, e.target.value),
+    placeholder: f.hint
+  }))))), /*#__PURE__*/React.createElement("div", null, /*#__PURE__*/React.createElement("label", {
     style: {
       fontSize: 11,
       textTransform: 'uppercase',
@@ -2506,6 +2537,7 @@ function CardModal({
     })
   }), /*#__PURE__*/React.createElement("div", {
     style: {
+      display: 'none',
       border: '1px solid var(--border)',
       borderRadius: 10,
       overflow: 'hidden'
@@ -7573,16 +7605,40 @@ ReactDOM.createRoot(document.getElementById('root')).render(/*#__PURE__*/React.c
   // antigas de cache no Chrome/Edge. Aqui removemos qualquer service worker e
   // cache que tenham sobrado — SEM recarregar (evita qualquer loop). O app passa
   // a carregar sempre a versão mais recente direto do servidor.
-  if ('serviceWorker' in navigator) {
-    navigator.serviceWorker.getRegistrations()
-      .then(function (regs) { regs.forEach(function (r) { r.unregister(); }); })
-      .catch(function () {});
-  }
-  if (window.caches && caches.keys) {
-    caches.keys()
-      .then(function (keys) { keys.forEach(function (k) { caches.delete(k); }); })
-      .catch(function () {});
-  }
+  // Limpeza definitiva de service workers antigos. No Chrome, apenas chamar
+  // unregister() não solta a aba atual imediatamente; por isso fazemos UMA
+  // recarga controlada após remover registros e caches.
+  (function cleanupLegacyServiceWorker() {
+    var reloadKey = 'kanban-sw-cleanup-v3';
+    var hasController = !!(navigator.serviceWorker && navigator.serviceWorker.controller);
+
+    var unregisterPromise = Promise.resolve();
+    if ('serviceWorker' in navigator) {
+      unregisterPromise = navigator.serviceWorker.getRegistrations()
+        .then(function (regs) {
+          return Promise.all(regs.map(function (r) { return r.unregister(); }));
+        })
+        .catch(function () {});
+    }
+
+    var cachePromise = Promise.resolve();
+    if (window.caches && caches.keys) {
+      cachePromise = caches.keys()
+        .then(function (keys) {
+          return Promise.all(keys.map(function (k) { return caches.delete(k); }));
+        })
+        .catch(function () {});
+    }
+
+    Promise.all([unregisterPromise, cachePromise]).then(function () {
+      if (hasController && !sessionStorage.getItem(reloadKey)) {
+        sessionStorage.setItem(reloadKey, '1');
+        var cleanUrl = new URL(window.location.href);
+        cleanUrl.searchParams.set('_refresh', Date.now().toString());
+        window.location.replace(cleanUrl.toString());
+      }
+    });
+  })();
 
   // Captura o evento beforeinstallprompt (Android/Chrome)
   let deferredInstallPrompt = null;
