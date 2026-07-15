@@ -6,6 +6,35 @@
 <title>Kanban SESE</title>
 
 <!-- ============================================================ -->
+<!-- 🔄 AUTO-ATUALIZAÇÃO: ao subir uma versão nova, troque APP_VERSION.  -->
+<!-- Ao detectar versão nova, remove service worker + cache antigos     -->
+<!-- UMA vez e recarrega, para todos verem a versão atual sem limpar    -->
+<!-- nada manualmente. Evita o app ficar preso numa versão em cache.    -->
+<!-- ============================================================ -->
+<script>
+(function () {
+  var APP_VERSION = '2026-07-5w2h-3'; // <-- troque esta string a cada nova publicação
+  try {
+    if (localStorage.getItem('__kanban_ver') === APP_VERSION) return;
+    localStorage.setItem('__kanban_ver', APP_VERSION); // marca antes de tudo (roda só 1x por versão)
+    if (!('serviceWorker' in navigator)) return;
+    navigator.serviceWorker.getRegistrations()
+      .then(function (regs) { return Promise.all(regs.map(function (r) { return r.unregister(); })); })
+      .then(function () {
+        if (window.caches && caches.keys) {
+          return caches.keys().then(function (keys) {
+            return Promise.all(keys.map(function (k) { return caches.delete(k); }));
+          });
+        }
+      })
+      .then(function () { location.reload(); })
+      .catch(function () {});
+  } catch (e) {}
+})();
+</script>
+
+
+<!-- ============================================================ -->
 <!-- 📱 PWA - Aplicativo instalável                                -->
 <!-- ============================================================ -->
 <link rel="manifest" href="manifest.json">
