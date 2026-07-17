@@ -1595,6 +1595,59 @@ function attachmentType(url) {
   if (/\.(docx?|odt|rtf|txt)(\?|$)/.test(u) || u.includes('/document/')) return 'doc';
   return 'link';
 }
+const MAX_PHOTO_BYTES = 1024 * 1024;
+const PHOTO_DATA_TARGET = 280000;
+function preparePhotoAttachment(file) {
+  return new Promise((resolve, reject) => {
+    if (!file || !file.type?.startsWith('image/')) {
+      reject(new Error('Selecione um arquivo de imagem.'));
+      return;
+    }
+    if (file.size > MAX_PHOTO_BYTES) {
+      reject(new Error('A foto deve ter no máximo 1 MB.'));
+      return;
+    }
+    const reader = new FileReader();
+    reader.onerror = () => reject(new Error('Não foi possível ler a foto.'));
+    reader.onload = () => {
+      const original = reader.result;
+      const image = new Image();
+      image.onerror = () => reject(new Error('Formato de imagem não suportado.'));
+      image.onload = () => {
+        try {
+          let width = image.naturalWidth || image.width;
+          let height = image.naturalHeight || image.height;
+          const scale = Math.min(1, 1280 / Math.max(width, height));
+          width = Math.max(1, Math.round(width * scale));
+          height = Math.max(1, Math.round(height * scale));
+          const canvas = document.createElement('canvas');
+          canvas.width = width;
+          canvas.height = height;
+          const context = canvas.getContext('2d');
+          context.drawImage(image, 0, 0, width, height);
+          let quality = .84;
+          let dataUrl = original.length <= PHOTO_DATA_TARGET ? original : canvas.toDataURL('image/jpeg', quality);
+          while (dataUrl.length > PHOTO_DATA_TARGET && quality > .36) {
+            quality -= .08;
+            dataUrl = canvas.toDataURL('image/jpeg', quality);
+          }
+          resolve({
+            id: uid('photo'),
+            url: dataUrl,
+            name: file.name || 'Foto',
+            type: 'image',
+            originalSize: file.size,
+            addedAt: Date.now()
+          });
+        } catch (error) {
+          reject(new Error('Não foi possível preparar a foto.'));
+        }
+      };
+      image.src = original;
+    };
+    reader.readAsDataURL(file);
+  });
+}
 const ATTACH_META = {
   image: {
     color: '#10b981',
@@ -2148,6 +2201,21 @@ function CardAttachments({
   const [url, setUrl] = useState('');
   const [name, setName] = useState('');
   const [adding, setAdding] = useState(false);
+  const [photoLoading, setPhotoLoading] = useState(false);
+  const addPhoto = async event => {
+    const file = event.target.files?.[0];
+    event.target.value = '';
+    if (!file) return;
+    setPhotoLoading(true);
+    try {
+      const photo = await preparePhotoAttachment(file);
+      onChange([...(attachments || []), photo]);
+    } catch (error) {
+      alert(error.message);
+    } finally {
+      setPhotoLoading(false);
+    }
+  };
   const add = () => {
     let u = url.trim();
     if (!u) return;
@@ -2251,6 +2319,28 @@ function CardAttachments({
     }, /*#__PURE__*/React.createElement(X, {
       size: 13
     })));
+  })), /*#__PURE__*/React.createElement("label", {
+    className: "btn btn-outline",
+    style: {
+      width: '100%',
+      justifyContent: 'center',
+      marginBottom: 8,
+      opacity: photoLoading ? .6 : 1,
+      cursor: photoLoading ? 'wait' : 'pointer'
+    }
+  }, photoLoading ? /*#__PURE__*/React.createElement(Loader2, {
+    size: 14,
+    className: "spin"
+  }) : /*#__PURE__*/React.createElement(ImageIcon, {
+    size: 14
+  }), photoLoading ? " Preparando foto…" : " Adicionar foto (máx. 1 MB)", /*#__PURE__*/React.createElement("input", {
+    type: "file",
+    accept: "image/*",
+    disabled: photoLoading,
+    onChange: addPhoto,
+    style: {
+      display: 'none'
+    }
   })), adding ? /*#__PURE__*/React.createElement("div", {
     style: {
       background: 'var(--surface)',
@@ -5681,7 +5771,8 @@ function MacroTimeline({
   onOpenCard,
   onUpdateItem,
   onReorderCards,
-  onCreateItem
+  onCreateItem,
+  onDeleteItem
 }) {
   const [projectFilter, setProjectFilter] = useState('all');
   const [statusFilter, setStatusFilter] = useState('all');
@@ -5690,6 +5781,7 @@ function MacroTimeline({
   const [rangeStartInput, setRangeStartInput] = useState('');
   const [rangeEndInput, setRangeEndInput] = useState('');
   const [createOpen, setCreateOpen] = useState(false);
+  const [createPhotoLoading, setCreatePhotoLoading] = useState(false);
   const [createDraft, setCreateDraft] = useState({
     projectId: '',
     boardId: '',
@@ -5698,7 +5790,8 @@ function MacroTimeline({
     description: '',
     assignee: '',
     startDate: '',
-    dueDate: ''
+    dueDate: '',
+    photoAttachment: null
   });
   const [collapsed, setCollapsed] = useState({});
   const scrollRef = useRef(null);
@@ -5791,7 +5884,8 @@ function MacroTimeline({
       description: '',
       assignee: '',
       startDate: today,
-      dueDate: shiftDateKey(today, 7)
+      dueDate: shiftDateKey(today, 7),
+      photoAttachment: null
     });
     setCreateOpen(true);
   };
@@ -5821,6 +5915,23 @@ function MacroTimeline({
     }
     onCreateItem(createDraft);
     setCreateOpen(false);
+  };
+  const selectCreatePhoto = async event => {
+    const file = event.target.files?.[0];
+    event.target.value = '';
+    if (!file) return;
+    setCreatePhotoLoading(true);
+    try {
+      const photoAttachment = await preparePhotoAttachment(file);
+      setCreateDraft(draft => ({
+        ...draft,
+        photoAttachment
+      }));
+    } catch (error) {
+      alert(error.message);
+    } finally {
+      setCreatePhotoLoading(false);
+    }
   };
   const scheduledDates = [today];
   visibleCards.forEach(item => {
@@ -5981,9 +6092,23 @@ function MacroTimeline({
       title: 'Mover um dia para trás'
     }, '←'), h('button', {
       className: 'macro-arrow',
-      onClick: () => shiftItem(item, 1),
-      title: 'Mover um dia para frente'
-    }, '→'))), h('div', {
+    onClick: () => shiftItem(item, 1),
+    title: 'Mover um dia para frente'
+    }, '→')), h('button', {
+      className: 'macro-arrow',
+      onClick: () => {
+        if (confirm(`Excluir ${subitem ? 'o subitem' : 'o card'} "${entity.title}"?`)) onDeleteItem(item.ref);
+      },
+      title: subitem ? 'Excluir subitem' : 'Excluir card do cronograma e do Kanban',
+      'aria-label': subitem ? `Excluir subitem ${entity.title}` : `Excluir card ${entity.title}`,
+      style: {
+        color: 'var(--danger)',
+        borderColor: 'color-mix(in srgb, var(--danger) 35%, var(--border))',
+        flexShrink: 0
+      }
+    }, h(Trash2, {
+      size: 13
+    }))), h('div', {
       className: 'macro-track',
       style: {
         width: timelineWidth,
@@ -6372,7 +6497,79 @@ function MacroTimeline({
       description: event.target.value
     })),
     placeholder: 'Detalhes opcionais'
-  }))), h('div', {
+  })), h('div', {
+    className: 'full-row'
+  }, h('label', null, 'Foto'), createDraft.photoAttachment ? h('div', {
+    className: 'flex items-center gap-3',
+    style: {
+      padding: 10,
+      border: '1px solid var(--border)',
+      borderRadius: 10,
+      background: 'var(--surface)'
+    }
+  }, h('img', {
+    src: createDraft.photoAttachment.url,
+    alt: createDraft.photoAttachment.name,
+    style: {
+      width: 72,
+      height: 54,
+      objectFit: 'cover',
+      borderRadius: 7,
+      border: '1px solid var(--border)'
+    }
+  }), h('div', {
+    className: 'min-w-0',
+    style: {
+      flex: 1
+    }
+  }, h('div', {
+    style: {
+      fontSize: 12,
+      fontWeight: 600,
+      overflow: 'hidden',
+      textOverflow: 'ellipsis',
+      whiteSpace: 'nowrap'
+    }
+  }, createDraft.photoAttachment.name), h('div', {
+    style: {
+      marginTop: 3,
+      fontSize: 10,
+      color: 'var(--text-faint)'
+    }
+  }, 'Foto otimizada para sincronização')), h('button', {
+    className: 'btn btn-ghost',
+    onClick: () => setCreateDraft(draft => ({
+      ...draft,
+      photoAttachment: null
+    })),
+    title: 'Remover foto',
+    style: {
+      color: 'var(--danger)'
+    }
+  }, h(Trash2, {
+    size: 14
+  }))) : h('label', {
+    className: 'btn btn-outline',
+    style: {
+      width: '100%',
+      justifyContent: 'center',
+      cursor: createPhotoLoading ? 'wait' : 'pointer',
+      opacity: createPhotoLoading ? .6 : 1
+    }
+  }, createPhotoLoading ? h(Loader2, {
+    size: 14,
+    className: 'spin'
+  }) : h(ImageIcon, {
+    size: 14
+  }), createPhotoLoading ? ' Preparando foto…' : ' Adicionar foto (máx. 1 MB)', h('input', {
+    type: 'file',
+    accept: 'image/*',
+    disabled: createPhotoLoading,
+    onChange: selectCreatePhoto,
+    style: {
+      display: 'none'
+    }
+  })))), h('div', {
     className: 'flex items-center justify-between',
     style: {
       padding: '14px 18px',
@@ -7066,7 +7263,7 @@ function KanbanApp() {
       startDate: draft.startDate || '',
       dueDate: draft.dueDate || '',
       assignee: draft.assignee?.trim() || '',
-      attachments: [],
+      attachments: draft.photoAttachment ? [draft.photoAttachment] : [],
       subitems: [],
       createdAt: Date.now()
     };
@@ -7149,6 +7346,21 @@ function KanbanApp() {
               } : subitem)
             };
           })
+        })
+      })
+    }));
+  };
+  const deleteTimelineItem = ref => {
+    setState(s => ({
+      ...s,
+      boards: s.boards.map(board => board.id !== ref.boardId ? board : {
+        ...board,
+        columns: board.columns.map(column => column.id !== ref.columnId ? column : {
+          ...column,
+          cards: ref.subitemId ? column.cards.map(card => card.id !== ref.cardId ? card : {
+            ...card,
+            subitems: (card.subitems || []).filter(subitem => subitem.id !== ref.subitemId)
+          }) : column.cards.filter(card => card.id !== ref.cardId)
         })
       })
     }));
@@ -8542,7 +8754,8 @@ function KanbanApp() {
     onOpenCard: openTimelineCard,
     onUpdateItem: updateTimelineItem,
     onReorderCards: reorderTimelineCards,
-    onCreateItem: addTimelineCard
+    onCreateItem: addTimelineCard,
+    onDeleteItem: deleteTimelineItem
   }), view === 'dashboard' && state && activeArea && /*#__PURE__*/React.createElement(Dashboard, {
     boards: state.boards,
     areas: state.areas,
