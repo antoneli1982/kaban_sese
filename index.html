@@ -249,6 +249,40 @@
   .mobile-menu-btn { display: none; }
   .mobile-only { display: none; }
   .desktop-only { display: flex; }
+  .app-side-rail {
+    position: fixed; right: 12px; top: 78px; z-index: 29;
+    width: 60px; padding: 8px; flex-direction: column;
+    background: color-mix(in srgb, var(--bg-soft) 94%, transparent);
+    border: 1px solid var(--border); border-radius: 14px;
+    box-shadow: 0 14px 34px rgba(0,0,0,.18);
+    backdrop-filter: blur(12px);
+  }
+  .app-side-rail .btn {
+    width: 42px; height: 42px; padding: 0 !important;
+    justify-content: center; font-size: 0;
+  }
+  .app-side-rail .search-input-wrapper { width: 42px; height: 42px; }
+  .app-side-rail .search-input-wrapper input {
+    position: absolute; right: 0; top: 0; width: 42px !important; height: 42px;
+    padding-left: 32px !important; padding-right: 8px;
+    color: transparent; cursor: pointer;
+    transition: width .18s ease, color .18s ease, background .18s ease;
+  }
+  .app-side-rail .search-input-wrapper input::placeholder { color: transparent; }
+  .app-side-rail .search-input-wrapper:focus-within input {
+    width: min(280px, calc(100vw - 100px)) !important;
+    color: var(--text); cursor: text; background: var(--bg-soft);
+    box-shadow: 0 10px 30px rgba(0,0,0,.22);
+  }
+  .app-side-rail .search-input-wrapper:focus-within input::placeholder { color: var(--text-faint); }
+  .app-side-rail .search-input-wrapper svg { z-index: 2; pointer-events: none; }
+  .app-side-rail .sync-indicator {
+    width: 42px; min-width: 42px !important; height: 30px;
+    justify-content: center; font-size: 0 !important;
+  }
+  .app-main { padding-right: 88px !important; }
+  .app-header { padding-right: 88px !important; }
+  .app-header .header-left { min-width: 0; overflow: hidden; }
 
   .mobile-drawer-backdrop {
     position: fixed; inset: 0; z-index: 40;
@@ -372,8 +406,13 @@
     .subitem-row .subitem-title { grid-column: 1 / -1; }
   }
 
-  /* ===== MOBILE (até 640px) ===== */
-  @media (max-width: 640px) {
+  @media (max-width: 1100px) and (min-width: 901px) {
+    .app-header .brand-text-block, .app-header .header-divider { display: none; }
+    .app-header .header-left { gap: 8px !important; }
+  }
+
+  /* ===== MOBILE / TABLET COMPACTO (até 900px) ===== */
+  @media (max-width: 900px) {
     .mobile-menu-btn { display: inline-flex; }
     .mobile-only { display: flex; }
     .desktop-only { display: none !important; }
@@ -7222,7 +7261,8 @@ function KanbanApp() {
     },
     onChange: handleImport
   }), /*#__PURE__*/React.createElement("div", {
-    className: "desktop-only items-center gap-3"
+    className: "desktop-only app-side-rail items-center gap-3",
+    "aria-label": "Ações principais"
   }, /*#__PURE__*/React.createElement("div", {
     className: "search-input-wrapper relative"
   }, /*#__PURE__*/React.createElement(Search, {
@@ -7258,16 +7298,18 @@ function KanbanApp() {
     size: 13
   }), " Exportar"), /*#__PURE__*/React.createElement("div", {
     style: {
-      width: 1,
-      height: 24,
+      width: '100%',
+      height: 1,
       background: 'var(--border)'
     }
   }), /*#__PURE__*/React.createElement(ThemeSwitcher, {
     theme: theme,
-    onChange: setTheme
+    onChange: setTheme,
+    compact: true
   }), /*#__PURE__*/React.createElement("button", {
     onClick: () => setView(v => v === 'timeline' ? 'board' : 'timeline'),
     className: "btn",
+    title: "Cronograma macro",
     style: {
       background: showTimeline ? 'var(--accent)' : 'transparent',
       color: showTimeline ? 'var(--accent-text)' : 'var(--text-dim)',
@@ -7278,6 +7320,7 @@ function KanbanApp() {
   }), " Cronograma"), /*#__PURE__*/React.createElement("button", {
     onClick: () => setView(v => v === 'dashboard' ? 'board' : 'dashboard'),
     className: "btn",
+    title: "Dashboard",
     style: {
       background: showDash ? 'var(--accent)' : 'transparent',
       color: showDash ? 'var(--accent-text)' : 'var(--text-dim)',
@@ -7286,7 +7329,7 @@ function KanbanApp() {
   }, /*#__PURE__*/React.createElement(BarChart2, {
     size: 13
   }), " Dashboard"), /*#__PURE__*/React.createElement("div", {
-    className: "font-mono flex items-center gap-1",
+    className: "sync-indicator font-mono flex items-center gap-1",
     style: {
       fontSize: 11,
       color: 'var(--text-faint)',
