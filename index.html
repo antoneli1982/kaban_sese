@@ -3691,26 +3691,7 @@ function AreasOverview({
     style: {
       flexShrink: 0
     }
-    }, /*#__PURE__*/React.createElement("select", {
-      className: "kbn",
-      value: p.folderId || '',
-      title: "Mover projeto para uma pasta",
-      onClick: event => event.stopPropagation(),
-      onChange: event => {
-        event.stopPropagation();
-        onMoveProjectToFolder(p.id, event.target.value);
-      },
-      style: {
-        width: 118,
-        padding: '5px 24px 5px 7px',
-        fontSize: 10
-      }
-    }, /*#__PURE__*/React.createElement("option", {
-      value: ""
-    }, "Sem pasta"), areaFolders.map(folder => /*#__PURE__*/React.createElement("option", {
-      key: folder.id,
-      value: folder.id
-    }, folder.name))), s.alerts.total > 0 && (() => {
+    }, s.alerts.total > 0 && (() => {
       const high = s.alerts.overdue + s.alerts.today > 0;
       const ac = high ? '#e11d48' : '#f59e0b';
       return /*#__PURE__*/React.createElement("span", {
@@ -4060,7 +4041,26 @@ function ProjectsOverview({
       style: {
         flexShrink: 0
       }
-    }, s.alerts.total > 0 && (() => {
+    }, /*#__PURE__*/React.createElement("select", {
+      className: "kbn",
+      value: p.folderId || '',
+      title: "Mover projeto para uma pasta",
+      onClick: event => event.stopPropagation(),
+      onChange: event => {
+        event.stopPropagation();
+        onMoveProjectToFolder(p.id, event.target.value);
+      },
+      style: {
+        width: 118,
+        padding: '5px 24px 5px 7px',
+        fontSize: 10
+      }
+    }, /*#__PURE__*/React.createElement("option", {
+      value: ""
+    }, "Sem pasta"), areaFolders.map(folder => /*#__PURE__*/React.createElement("option", {
+      key: folder.id,
+      value: folder.id
+    }, folder.name))), s.alerts.total > 0 && (() => {
       const high = s.alerts.overdue + s.alerts.today > 0;
       const ac = high ? '#e11d48' : '#f59e0b';
       return /*#__PURE__*/React.createElement("span", {
