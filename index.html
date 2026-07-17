@@ -8,7 +8,7 @@
 <!-- ============================================================ -->
 <!-- 📱 PWA - Aplicativo instalável                                -->
 <!-- ============================================================ -->
-<link rel="manifest" href="manifest.json">
+<link rel="manifest" href="manifest.json?v=4">
 <meta name="theme-color" content="#3b5cff">
 <meta name="background-color" content="#0a0a0b">
 <meta name="description" content="Sistema de gestão Kanban em tempo real para o time SESE.">
@@ -8440,14 +8440,40 @@ ReactDOM.createRoot(document.getElementById('root')).render(/*#__PURE__*/React.c
 <!-- 📱 PWA: Service Worker + Botão de instalação                  -->
 <!-- ============================================================ -->
 <script>
-  // Registra o service worker (somente em produção, em HTTPS ou localhost)
-  if ('serviceWorker' in navigator) {
-    window.addEventListener('load', () => {
-      navigator.serviceWorker.register('sw.js').catch(err => {
-        console.warn('SW registration failed:', err);
-      });
+  // Limpa versões antigas do service worker e seus caches. Faz no máximo uma
+  // recarga controlada por sessão quando a aba ainda está sob controle antigo.
+  (function cleanupLegacyServiceWorker() {
+    var reloadKey = 'kanban-sw-cleanup-v4';
+    var hasController = !!(navigator.serviceWorker && navigator.serviceWorker.controller);
+    var unregisterPromise = Promise.resolve();
+    if ('serviceWorker' in navigator) {
+      unregisterPromise = navigator.serviceWorker.getRegistrations()
+        .then(function (regs) {
+          return Promise.all(regs.map(function (registration) {
+            return registration.unregister();
+          }));
+        })
+        .catch(function () {});
+    }
+    var cachePromise = Promise.resolve();
+    if (window.caches && caches.keys) {
+      cachePromise = caches.keys()
+        .then(function (keys) {
+          return Promise.all(keys.map(function (key) {
+            return caches.delete(key);
+          }));
+        })
+        .catch(function () {});
+    }
+    Promise.all([unregisterPromise, cachePromise]).then(function () {
+      if (hasController && !sessionStorage.getItem(reloadKey)) {
+        sessionStorage.setItem(reloadKey, '1');
+        var cleanUrl = new URL(window.location.href);
+        cleanUrl.searchParams.set('_refresh', Date.now().toString());
+        window.location.replace(cleanUrl.toString());
+      }
     });
-  }
+  })();
 
   // Captura o evento beforeinstallprompt (Android/Chrome)
   let deferredInstallPrompt = null;
