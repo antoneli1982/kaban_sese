@@ -8,7 +8,7 @@
 <!-- ============================================================ -->
 <!-- 📱 PWA - Aplicativo instalável                                -->
 <!-- ============================================================ -->
-<link rel="manifest" href="manifest.json?v=3">
+<link rel="manifest" href="manifest.json">
 <meta name="theme-color" content="#3b5cff">
 <meta name="background-color" content="#0a0a0b">
 <meta name="description" content="Sistema de gestão Kanban em tempo real para o time SESE.">
@@ -258,6 +258,76 @@
     gap: 14px;
   }
 
+  /* Cronograma macro / Gantt */
+  .macro-toolbar {
+    display: flex; align-items: flex-end; justify-content: space-between;
+    gap: 14px; flex-wrap: wrap; margin-bottom: 14px;
+  }
+  .macro-filters { display: flex; gap: 10px; flex-wrap: wrap; align-items: flex-end; }
+  .macro-filter { min-width: 170px; }
+  .macro-filter > label {
+    display: block; margin-bottom: 5px; font-size: 10px; font-weight: 600;
+    text-transform: uppercase; letter-spacing: .08em; color: var(--text-faint);
+  }
+  .macro-scroll {
+    overflow: auto; max-height: calc(100vh - 250px); min-height: 410px;
+    border: 1px solid var(--border); border-radius: 12px;
+    background: var(--bg-soft); overscroll-behavior: contain;
+  }
+  .macro-table { position: relative; min-height: 100%; }
+  .macro-row { display: flex; min-height: 54px; border-bottom: 1px solid var(--border-soft); }
+  .macro-row:hover .macro-left-cell, .macro-row:hover .macro-track { background-color: var(--surface); }
+  .macro-left-cell {
+    position: sticky; left: 0; z-index: 5; width: 500px; min-width: 500px;
+    display: flex; align-items: center; gap: 8px; padding: 7px 10px;
+    background: var(--bg-soft); border-right: 1px solid var(--border);
+  }
+  .macro-track {
+    position: relative; min-height: 54px;
+    background-image: repeating-linear-gradient(to right, transparent 0, transparent calc(var(--day-width) - 1px), var(--border-soft) calc(var(--day-width) - 1px), var(--border-soft) var(--day-width));
+  }
+  .macro-header { position: sticky; top: 0; z-index: 12; min-height: 62px; background: var(--surface); }
+  .macro-header .macro-left-cell { z-index: 14; background: var(--surface); }
+  .macro-month {
+    position: absolute; top: 0; height: 62px; padding: 8px 9px;
+    border-right: 1px solid var(--border); overflow: hidden; white-space: nowrap;
+    font-size: 11px; font-weight: 600; color: var(--text-dim);
+  }
+  .macro-month small { display: block; margin-top: 5px; font-size: 9px; font-weight: 500; color: var(--text-faint); }
+  .macro-project-row { min-height: 38px; background: color-mix(in srgb, var(--accent) 7%, var(--bg-soft)); }
+  .macro-project-row .macro-left-cell { min-height: 38px; background: color-mix(in srgb, var(--accent) 7%, var(--bg-soft)); }
+  .macro-project-row .macro-track { min-height: 38px; }
+  .macro-bar {
+    position: absolute; top: 13px; height: 28px; border-radius: 7px;
+    display: flex; align-items: center; gap: 6px; padding: 0 9px;
+    overflow: hidden; white-space: nowrap; text-overflow: ellipsis;
+    color: #fff; font-size: 10px; font-weight: 600;
+    box-shadow: 0 3px 10px rgba(0,0,0,.22); cursor: pointer;
+  }
+  .macro-bar.subitem { top: 15px; height: 24px; border-radius: 6px; opacity: .9; }
+  .macro-bar.unscheduled {
+    left: 10px !important; width: auto !important; max-width: 170px;
+    color: var(--text-faint); background: var(--surface); border: 1px dashed var(--border);
+    box-shadow: none;
+  }
+  .macro-today { position: absolute; top: 0; bottom: 0; width: 2px; background: #e11d48; z-index: 3; pointer-events: none; }
+  .macro-today::before { content: 'Hoje'; position: sticky; top: 2px; margin-left: 4px; font-size: 9px; color: #fb7185; }
+  .macro-arrow {
+    width: 24px; height: 24px; padding: 0; border-radius: 5px;
+    display: inline-flex; align-items: center; justify-content: center;
+    border: 1px solid var(--border); background: var(--surface); color: var(--text-dim);
+    cursor: pointer; font-size: 13px; line-height: 1;
+  }
+  .macro-arrow:hover { border-color: var(--accent); color: var(--text); }
+  .subitem-editor {
+    border: 1px solid var(--border); border-radius: 10px; overflow: hidden;
+  }
+  .subitem-row {
+    display: grid; grid-template-columns: minmax(160px, 1.5fr) minmax(120px, .8fr) minmax(110px, .8fr) 130px 130px 40px;
+    gap: 8px; align-items: end; padding: 10px 12px; border-top: 1px solid var(--border-soft);
+  }
+  .subitem-row label { display: block; margin-bottom: 4px; font-size: 9px; text-transform: uppercase; letter-spacing: .06em; color: var(--text-faint); }
+
   /* Alerta de prazo pulsante */
   @keyframes pulseAlert {
     0%, 100% { opacity: 1; }
@@ -276,6 +346,8 @@
   /* ===== TABLET (até 900px) ===== */
   @media (max-width: 900px) {
     .dash-grid-2 { grid-template-columns: 1fr !important; }
+    .subitem-row { grid-template-columns: 1fr 1fr; }
+    .subitem-row .subitem-title { grid-column: 1 / -1; }
   }
 
   /* ===== MOBILE (até 640px) ===== */
@@ -323,6 +395,16 @@
 
     /* Overview de áreas/projetos: 1 coluna no mobile */
     .overview-grid { grid-template-columns: 1fr !important; gap: 12px !important; }
+    .macro-toolbar { align-items: stretch; }
+    .macro-filters { display: grid; grid-template-columns: 1fr 1fr; width: 100%; }
+    .macro-filter { min-width: 0; }
+    .macro-left-cell { width: 315px; min-width: 315px; }
+    .macro-scroll { max-height: calc(100vh - 220px); border-radius: 8px; }
+    .macro-row { min-height: 62px; }
+    .macro-track { min-height: 62px; }
+    .macro-bar { top: 17px; }
+    .subitem-row { grid-template-columns: 1fr; }
+    .subitem-row .subitem-title { grid-column: auto; }
   }
 
   /* Esconde scrollbar no carrossel horizontal no mobile p/ visual mais limpo */
@@ -705,6 +787,7 @@ const {
   useRef,
   useCallback
 } = React;
+const h = React.createElement;
 
 // ============================================================
 // LOGO SESE (embutida)
@@ -2222,6 +2305,183 @@ const W5H2_FIELDS = [{
 function countW5H2(w) {
   return w ? Object.values(w).filter(v => v && String(v).trim()).length : 0;
 }
+const SUBITEM_STATUSES = [{
+  id: 'not_started',
+  label: 'Não iniciado',
+  color: '#71717a',
+  progress: 0
+}, {
+  id: 'in_progress',
+  label: 'Em andamento',
+  color: '#0ea5e9',
+  progress: 50
+}, {
+  id: 'blocked',
+  label: 'Bloqueado',
+  color: '#e11d48',
+  progress: 25
+}, {
+  id: 'done',
+  label: 'Concluído',
+  color: '#10b981',
+  progress: 100
+}];
+function localDateKey(date = new Date()) {
+  const y = date.getFullYear();
+  const m = String(date.getMonth() + 1).padStart(2, '0');
+  const d = String(date.getDate()).padStart(2, '0');
+  return `${y}-${m}-${d}`;
+}
+function parseDateKey(value) {
+  if (!value) return null;
+  const date = new Date(value + 'T12:00:00');
+  return Number.isNaN(date.getTime()) ? null : date;
+}
+function shiftDateKey(value, days) {
+  const date = parseDateKey(value) || new Date();
+  date.setDate(date.getDate() + days);
+  return localDateKey(date);
+}
+function dayDistance(from, to) {
+  const a = parseDateKey(from);
+  const b = parseDateKey(to);
+  if (!a || !b) return 0;
+  return Math.round((b - a) / 86400000);
+}
+function formatDateShort(value) {
+  const date = parseDateKey(value);
+  return date ? date.toLocaleDateString('pt-BR', {
+    day: '2-digit',
+    month: '2-digit',
+    year: '2-digit'
+  }) : '—';
+}
+function SubitemsEditor({
+  draft,
+  setDraft
+}) {
+  const subitems = draft.subitems || [];
+  const update = (id, patch) => setDraft(d => ({
+    ...d,
+    subitems: (d.subitems || []).map(s => s.id === id ? {
+      ...s,
+      ...patch
+    } : s)
+  }));
+  const add = () => {
+    const startDate = draft.startDate || localDateKey();
+    const dueDate = draft.dueDate && draft.dueDate >= startDate ? draft.dueDate : shiftDateKey(startDate, 7);
+    setDraft(d => ({
+      ...d,
+      subitems: [...(d.subitems || []), {
+        id: uid('sub'),
+        title: 'Novo subitem',
+        assignee: d.assignee || '',
+        status: 'not_started',
+        progress: 0,
+        startDate,
+        dueDate,
+        createdAt: Date.now()
+      }]
+    }));
+  };
+  const remove = id => setDraft(d => ({
+    ...d,
+    subitems: (d.subitems || []).filter(s => s.id !== id)
+  }));
+  return h('div', {
+    className: 'subitem-editor'
+  }, h('div', {
+    className: 'flex items-center justify-between',
+    style: {
+      padding: '11px 13px',
+      background: 'var(--surface)'
+    }
+  }, h('div', null, h('div', {
+    style: {
+      fontSize: 13,
+      fontWeight: 600
+    }
+  }, 'Subitens independentes'), h('div', {
+    style: {
+      fontSize: 10,
+      color: 'var(--text-faint)',
+      marginTop: 2
+    }
+  }, `${subitems.length} subitem${subitems.length === 1 ? '' : 's'} · datas, responsável e status próprios`)), h('button', {
+    type: 'button',
+    className: 'btn btn-outline',
+    onClick: add
+  }, h(Plus, {
+    size: 13
+  }), ' Adicionar subitem')), subitems.length === 0 && h('div', {
+    style: {
+      padding: '14px',
+      color: 'var(--text-faint)',
+      fontSize: 12,
+      borderTop: '1px solid var(--border-soft)'
+    }
+  }, 'Use subitens para etapas que precisam avançar sem depender do status do card principal.'), subitems.map((sub, index) => h('div', {
+    key: sub.id,
+    className: 'subitem-row'
+  }, h('div', {
+    className: 'subitem-title'
+  }, h('label', null, `Subitem ${index + 1}`), h('input', {
+    className: 'kbn',
+    value: sub.title || '',
+    onChange: e => update(sub.id, {
+      title: e.target.value
+    }),
+    placeholder: 'Nome da etapa'
+  })), h('div', null, h('label', null, 'Status próprio'), h('select', {
+    className: 'kbn',
+    value: sub.status || 'not_started',
+    onChange: e => {
+      const status = SUBITEM_STATUSES.find(s => s.id === e.target.value);
+      update(sub.id, {
+        status: e.target.value,
+        progress: status?.progress ?? sub.progress ?? 0
+      });
+    }
+  }, SUBITEM_STATUSES.map(status => h('option', {
+    key: status.id,
+    value: status.id
+  }, status.label)))), h('div', null, h('label', null, 'Responsável'), h('input', {
+    className: 'kbn',
+    value: sub.assignee || '',
+    onChange: e => update(sub.id, {
+      assignee: e.target.value
+    }),
+    placeholder: 'Nome'
+  })), h('div', null, h('label', null, 'Início'), h('input', {
+    type: 'date',
+    className: 'kbn',
+    value: sub.startDate || '',
+    onChange: e => update(sub.id, {
+      startDate: e.target.value
+    })
+  })), h('div', null, h('label', null, 'Fim'), h('input', {
+    type: 'date',
+    className: 'kbn',
+    value: sub.dueDate || '',
+    onChange: e => update(sub.id, {
+      dueDate: e.target.value
+    })
+  })), h('button', {
+    type: 'button',
+    className: 'btn btn-danger',
+    onClick: () => remove(sub.id),
+    title: 'Excluir subitem',
+    style: {
+      width: 36,
+      height: 36,
+      padding: 0,
+      justifyContent: 'center'
+    }
+  }, h(Trash2, {
+    size: 14
+  })))));
+}
 function CardModal({
   card,
   columnId,
@@ -2234,13 +2494,11 @@ function CardModal({
   const [draft, setDraft] = useState(card);
   const [showW5H2, setShowW5H2] = useState(false);
   const [editField, setEditField] = useState(null); // chave do campo 5W2H aberto no editor grande
-  const [openField, setOpenField] = useState(null); // chave do campo 5W2H expandido inline para edição
   useEffect(() => {
     setDraft(card);
-    // Abre a seção 5W2H automaticamente só se o card já tiver algum campo preenchido.
-    setShowW5H2(countW5H2(card.w5h2) > 0);
+    // Abre a seção 5W2H automaticamente se o card já tiver algum campo preenchido.
+    setShowW5H2(countW5H2(card?.w5h2) > 0);
     setEditField(null);
-    setOpenField(null);
   }, [card]);
   if (!card) return null;
   const setW5H2 = (key, val) => setDraft(d => ({
@@ -2260,7 +2518,23 @@ function CardModal({
     });
   };
   const save = () => {
-    onSave(draft);
+    if (draft.startDate && draft.dueDate && draft.startDate > draft.dueDate) {
+      alert('A data inicial do card não pode ser posterior à data final.');
+      return;
+    }
+    const invalidSubitem = (draft.subitems || []).find(s => s.startDate && s.dueDate && s.startDate > s.dueDate);
+    if (invalidSubitem) {
+      alert(`Revise as datas do subitem "${invalidSubitem.title || 'sem título'}".`);
+      return;
+    }
+    onSave({
+      ...draft,
+      title: (draft.title || '').trim() || 'Card sem título',
+      subitems: (draft.subitems || []).map(s => ({
+        ...s,
+        title: (s.title || '').trim() || 'Subitem sem título'
+      }))
+    });
     onClose();
   };
   return /*#__PURE__*/React.createElement(React.Fragment, null, /*#__PURE__*/React.createElement("div", {
@@ -2277,7 +2551,7 @@ function CardModal({
       background: 'var(--bg-soft)',
       border: '1px solid var(--border)',
       width: '100%',
-      maxWidth: 580,
+      maxWidth: 780,
       maxHeight: '90vh',
       borderRadius: 12,
       boxShadow: '0 20px 60px rgba(0,0,0,0.5)'
@@ -2356,83 +2630,7 @@ function CardModal({
       description: e.target.value
     }),
     placeholder: "Detalhes, contexto, links…"
-  })), /*#__PURE__*/React.createElement("div", {
-    style: {
-      border: '1px solid var(--accent)',
-      borderRadius: 10,
-      padding: 14,
-      background: 'var(--accent-soft)'
-    }
-  }, /*#__PURE__*/React.createElement("button", {
-    type: "button",
-    onClick: () => setShowW5H2(v => !v),
-    className: "flex items-center justify-between",
-    style: {
-      width: '100%',
-      background: 'none',
-      border: 'none',
-      padding: 0,
-      cursor: 'pointer',
-      textAlign: 'left'
-    }
-  }, /*#__PURE__*/React.createElement("div", null, /*#__PURE__*/React.createElement("div", {
-    style: { fontSize: 15, fontWeight: 700, color: 'var(--text)' }
-  }, "Plano de Ação 5W2H"), /*#__PURE__*/React.createElement("div", {
-    style: { fontSize: 11, color: 'var(--text-dim)', marginTop: 2 }
-  }, showW5H2 ? "Preencha os sete campos abaixo" : "Opcional \u2014 clique para abrir e preencher")), /*#__PURE__*/React.createElement("div", {
-    className: "flex items-center gap-2"
-  }, /*#__PURE__*/React.createElement("span", {
-    style: { fontSize: 11, fontWeight: 700, color: 'var(--accent)' }
-  }, w5h2Count, "/7"), /*#__PURE__*/React.createElement(ChevronRight, {
-    size: 18,
-    style: {
-      color: 'var(--accent)',
-      flexShrink: 0,
-      transform: showW5H2 ? 'rotate(90deg)' : 'none',
-      transition: 'transform 0.15s'
-    }
-  }))), showW5H2 && /*#__PURE__*/React.createElement("div", {
-    style: { display: 'grid', gridTemplateColumns: '1fr', gap: 10, marginTop: 14 }
-  }, W5H2_FIELDS.map(f => {
-    const isOpen = openField === f.key;
-    const val = (draft.w5h2 || {})[f.key] || '';
-    return /*#__PURE__*/React.createElement("div", {
-      key: f.key,
-      style: { border: '1px solid var(--border-soft)', borderRadius: 8, overflow: 'hidden', background: 'var(--bg-soft)' }
-    }, /*#__PURE__*/React.createElement("button", {
-      type: "button",
-      onClick: () => setOpenField(isOpen ? null : f.key),
-      className: "flex items-center justify-between hover-bg",
-      style: { width: '100%', padding: '10px 11px', background: 'transparent', border: 'none', cursor: 'pointer', textAlign: 'left' }
-    }, /*#__PURE__*/React.createElement("div", {
-      className: "flex items-center gap-2",
-      style: { minWidth: 0, flex: 1 }
-    }, /*#__PURE__*/React.createElement("span", {
-      style: { fontSize: 12, fontWeight: 700, color: 'var(--accent)', flexShrink: 0 }
-    }, f.w, "?"), !isOpen && /*#__PURE__*/React.createElement("span", {
-      style: { fontSize: 12, color: val ? 'var(--text-dim)' : 'var(--text-faint)', fontStyle: val ? 'normal' : 'italic', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis', minWidth: 0 }
-    }, val || f.hint)), /*#__PURE__*/React.createElement(ChevronRight, {
-      size: 15,
-      style: { color: 'var(--text-faint)', flexShrink: 0, transform: isOpen ? 'rotate(90deg)' : 'none', transition: 'transform 0.15s' }
-    })), isOpen && /*#__PURE__*/React.createElement("div", {
-      style: { padding: '0 11px 11px' }
-    }, /*#__PURE__*/React.createElement("label", {
-      style: { fontSize: 11, color: 'var(--text-dim)', display: 'block', marginBottom: 6 }
-    }, f.en, " \u2014 ", f.hint), f.long ? /*#__PURE__*/React.createElement("textarea", {
-      className: "kbn",
-      autoFocus: true,
-      style: { minHeight: 80, resize: 'vertical' },
-      value: val,
-      onChange: e => setW5H2(f.key, e.target.value),
-      placeholder: f.hint
-    }) : /*#__PURE__*/React.createElement("input", {
-      className: "kbn",
-      autoFocus: true,
-      value: val,
-      onChange: e => setW5H2(f.key, e.target.value),
-      placeholder: f.hint
-    })));
-  }))), /*#__PURE__*/React.createElement("div", null, /*#__PURE__*/React.createElement("label", {
+  })), /*#__PURE__*/React.createElement("div", null, /*#__PURE__*/React.createElement("label", {
     style: {
       fontSize: 11,
       textTransform: 'uppercase',
@@ -2468,7 +2666,7 @@ function CardModal({
     className: "modal-body-grid-3",
     style: {
       display: 'grid',
-      gridTemplateColumns: '1fr 1fr 1fr',
+      gridTemplateColumns: '1fr 1fr',
       gap: 12
     }
   }, /*#__PURE__*/React.createElement("div", null, /*#__PURE__*/React.createElement("label", {
@@ -2519,7 +2717,25 @@ function CardModal({
       marginBottom: 6,
       color: 'var(--text-faint)'
     }
-  }, "Prazo"), /*#__PURE__*/React.createElement("input", {
+  }, "Data inicial"), /*#__PURE__*/React.createElement("input", {
+    type: "date",
+    className: "kbn",
+    value: draft.startDate || '',
+    onChange: e => setDraft({
+      ...draft,
+      startDate: e.target.value
+    })
+  })), /*#__PURE__*/React.createElement("div", null, /*#__PURE__*/React.createElement("label", {
+    style: {
+      fontSize: 11,
+      textTransform: 'uppercase',
+      letterSpacing: '0.08em',
+      fontWeight: 500,
+      display: 'block',
+      marginBottom: 6,
+      color: 'var(--text-faint)'
+    }
+  }, "Data final"), /*#__PURE__*/React.createElement("input", {
     type: "date",
     className: "kbn",
     value: draft.dueDate || '',
@@ -2576,7 +2792,10 @@ function CardModal({
         border: `2px solid ${active ? p.color : p.color + '44'}`
       }
     }, p.label);
-  }))), /*#__PURE__*/React.createElement(CardAttachments, {
+  }))), /*#__PURE__*/React.createElement(SubitemsEditor, {
+    draft: draft,
+    setDraft: setDraft
+  }), /*#__PURE__*/React.createElement(CardAttachments, {
     attachments: draft.attachments || [],
     onChange: list => setDraft({
       ...draft,
@@ -2584,7 +2803,6 @@ function CardModal({
     })
   }), /*#__PURE__*/React.createElement("div", {
     style: {
-      display: 'none',
       border: '1px solid var(--border)',
       borderRadius: 10,
       overflow: 'hidden'
@@ -5379,6 +5597,473 @@ function Dashboard({
 }
 
 // ============================================================
+// CRONOGRAMA MACRO (todos os cards + subitens independentes)
+// ============================================================
+function MacroTimeline({
+  boards,
+  projects,
+  areas,
+  onOpenCard,
+  onUpdateItem,
+  onReorderCards
+}) {
+  const [projectFilter, setProjectFilter] = useState('all');
+  const [statusFilter, setStatusFilter] = useState('all');
+  const [query, setQuery] = useState('');
+  const [zoom, setZoom] = useState('month');
+  const [collapsed, setCollapsed] = useState({});
+  const scrollRef = useRef(null);
+  const zoomConfig = {
+    week: {
+      dayWidth: 26,
+      padding: 7,
+      label: 'Semana'
+    },
+    month: {
+      dayWidth: 12,
+      padding: 18,
+      label: 'Mês'
+    },
+    quarter: {
+      dayWidth: 5,
+      padding: 35,
+      label: 'Trimestre'
+    }
+  }[zoom];
+  const projectMap = Object.fromEntries((projects || []).map(p => [p.id, p]));
+  const areaMap = Object.fromEntries((areas || []).map(a => [a.id, a]));
+  let sequence = 0;
+  const allCards = [];
+  (boards || []).forEach(board => {
+    (board.columns || []).forEach(column => {
+      (column.cards || []).forEach(card => {
+        allCards.push({
+          key: `${board.id}:${column.id}:${card.id}`,
+          type: 'card',
+          entity: card,
+          card,
+          board,
+          column,
+          project: projectMap[board.projectId] || {
+            id: board.projectId || 'unknown',
+            name: 'Projeto sem nome',
+            color: board.color || '#71717a'
+          },
+          area: areaMap[board.areaId],
+          position: card.timelineOrder ?? sequence,
+          ref: {
+            boardId: board.id,
+            columnId: column.id,
+            cardId: card.id,
+            projectId: board.projectId,
+            areaId: board.areaId
+          }
+        });
+        sequence += 1;
+      });
+    });
+  });
+  const statusOptions = [...new Set(allCards.map(item => item.column.name))].sort((a, b) => a.localeCompare(b, 'pt-BR'));
+  const normalizedQuery = query.trim().toLocaleLowerCase('pt-BR');
+  const visibleCards = allCards.filter(item => {
+    if (projectFilter !== 'all' && item.board.projectId !== projectFilter) return false;
+    if (statusFilter !== 'all' && item.column.name !== statusFilter) return false;
+    if (!normalizedQuery) return true;
+    const card = item.card;
+    const searchable = [card.title, card.description, card.assignee, item.project.name, item.board.name, item.column.name, ...(card.subitems || []).flatMap(s => [s.title, s.assignee])].filter(Boolean).join(' ').toLocaleLowerCase('pt-BR');
+    return searchable.includes(normalizedQuery);
+  });
+  const grouped = [];
+  const groupMap = new Map();
+  visibleCards.forEach(item => {
+    const id = item.project.id || 'unknown';
+    if (!groupMap.has(id)) {
+      const group = {
+        project: item.project,
+        cards: []
+      };
+      groupMap.set(id, group);
+      grouped.push(group);
+    }
+    groupMap.get(id).cards.push(item);
+  });
+  grouped.sort((a, b) => (projects || []).findIndex(p => p.id === a.project.id) - (projects || []).findIndex(p => p.id === b.project.id));
+  grouped.forEach(group => group.cards.sort((a, b) => a.position - b.position || (a.card.createdAt || 0) - (b.card.createdAt || 0)));
+  const today = localDateKey();
+  const scheduledDates = [today];
+  visibleCards.forEach(item => {
+    const entities = [item.card, ...(item.card.subitems || [])];
+    entities.forEach(entity => {
+      if (entity.startDate) scheduledDates.push(entity.startDate);
+      if (entity.dueDate) scheduledDates.push(entity.dueDate);
+    });
+  });
+  scheduledDates.sort();
+  const rangeStart = shiftDateKey(scheduledDates[0] || today, -zoomConfig.padding);
+  const rangeEnd = shiftDateKey(scheduledDates[scheduledDates.length - 1] || today, zoomConfig.padding * 2);
+  const totalDays = Math.max(1, dayDistance(rangeStart, rangeEnd) + 1);
+  const dayWidth = Math.max(zoomConfig.dayWidth, 900 / totalDays);
+  const timelineWidth = Math.ceil(totalDays * dayWidth);
+  const todayLeft = dayDistance(rangeStart, today) * dayWidth;
+  const monthSegments = [];
+  let cursor = parseDateKey(rangeStart);
+  const endDate = parseDateKey(rangeEnd);
+  while (cursor && endDate && cursor <= endDate) {
+    const monthStart = new Date(cursor.getFullYear(), cursor.getMonth(), 1, 12);
+    const nextMonth = new Date(cursor.getFullYear(), cursor.getMonth() + 1, 1, 12);
+    const monthEnd = new Date(nextMonth.getTime() - 86400000);
+    const segmentStart = cursor > monthStart ? cursor : monthStart;
+    const segmentEnd = endDate < monthEnd ? endDate : monthEnd;
+    const startKey = localDateKey(segmentStart);
+    const segmentDays = Math.max(1, dayDistance(startKey, localDateKey(segmentEnd)) + 1);
+    monthSegments.push({
+      key: `${cursor.getFullYear()}-${cursor.getMonth()}`,
+      label: cursor.toLocaleDateString('pt-BR', {
+        month: 'long',
+        year: 'numeric'
+      }),
+      left: dayDistance(rangeStart, startKey) * dayWidth,
+      width: segmentDays * dayWidth,
+      days: segmentDays
+    });
+    cursor = nextMonth;
+  }
+  const totalSubitems = visibleCards.reduce((sum, item) => sum + (item.card.subitems || []).length, 0);
+  const unscheduled = visibleCards.filter(item => !item.card.startDate && !item.card.dueDate).length;
+  const scrollToday = () => {
+    if (!scrollRef.current) return;
+    scrollRef.current.scrollLeft = Math.max(0, 500 + todayLeft - scrollRef.current.clientWidth / 2);
+  };
+  const shiftItem = (item, amount) => {
+    const entity = item.entity;
+    const startDate = entity.startDate || entity.dueDate || today;
+    const dueDate = entity.dueDate || entity.startDate || shiftDateKey(startDate, 7);
+    onUpdateItem(item.ref, {
+      startDate: shiftDateKey(startDate, amount),
+      dueDate: shiftDateKey(dueDate, amount)
+    });
+  };
+  const renderItemRow = (item, subitem = false, cardIndex = 0, siblings = []) => {
+    const entity = item.entity;
+    const startDate = entity.startDate || entity.dueDate;
+    const dueDate = entity.dueDate || entity.startDate;
+    const hasDates = !!(startDate && dueDate);
+    const invalidRange = hasDates && dueDate < startDate;
+    const left = hasDates ? dayDistance(rangeStart, startDate) * dayWidth : 0;
+    const width = hasDates ? Math.max(24, (Math.max(0, dayDistance(startDate, dueDate)) + 1) * dayWidth) : 0;
+    const statusMeta = subitem ? SUBITEM_STATUSES.find(s => s.id === (entity.status || 'not_started')) : null;
+    const color = invalidRange ? '#e11d48' : subitem ? statusMeta?.color || '#71717a' : item.project.color || item.board.color || '#3b5cff';
+    const progress = entity.progress ?? (subitem ? statusMeta?.progress || 0 : 0);
+    const hasChildren = !subitem && (item.card.subitems || []).length > 0;
+    const previous = !subitem && cardIndex > 0 ? siblings[cardIndex - 1] : null;
+    const next = !subitem && cardIndex < siblings.length - 1 ? siblings[cardIndex + 1] : null;
+    return h('div', {
+      key: item.key,
+      className: `macro-row ${subitem ? 'macro-subitem-row' : ''}`,
+      style: {
+        '--day-width': `${dayWidth}px`
+      }
+    }, h('div', {
+      className: 'macro-left-cell'
+    }, !subitem && h('div', {
+      className: 'flex flex-col gap-1',
+      style: {
+        flexShrink: 0
+      }
+    }, h('button', {
+      className: 'macro-arrow',
+      disabled: !previous,
+      onClick: () => previous && onReorderCards(item.ref, previous.ref, item.position, previous.position),
+      title: 'Subir item no gráfico',
+      style: {
+        opacity: previous ? 1 : .3
+      }
+    }, '↑'), h('button', {
+      className: 'macro-arrow',
+      disabled: !next,
+      onClick: () => next && onReorderCards(item.ref, next.ref, item.position, next.position),
+      title: 'Descer item no gráfico',
+      style: {
+        opacity: next ? 1 : .3
+      }
+    }, '↓')), h('div', {
+      style: {
+        width: subitem ? 26 : 0,
+        flexShrink: 0,
+        borderLeft: subitem ? '2px solid var(--border)' : 'none',
+        height: subitem ? 30 : 0,
+        marginLeft: subitem ? 12 : 0
+      }
+    }), h('div', {
+      className: 'min-w-0',
+      style: {
+        flex: 1
+      }
+    }, h('div', {
+      className: 'flex items-center gap-2'
+    }, hasChildren && h('button', {
+      className: 'macro-arrow',
+      onClick: () => setCollapsed(c => ({
+        ...c,
+        [item.card.id]: !c[item.card.id]
+      })),
+      title: collapsed[item.card.id] ? 'Mostrar subitens' : 'Ocultar subitens',
+      style: {
+        width: 22,
+        height: 22,
+        transform: collapsed[item.card.id] ? 'none' : 'rotate(90deg)'
+      }
+    }, '›'), h('button', {
+      onClick: () => onOpenCard(item.ref),
+      title: 'Abrir card completo',
+      style: {
+        minWidth: 0,
+        color: 'var(--text)',
+        background: 'none',
+        border: 'none',
+        cursor: 'pointer',
+        fontSize: subitem ? 11 : 12,
+        fontWeight: subitem ? 500 : 600,
+        textAlign: 'left',
+        overflow: 'hidden',
+        textOverflow: 'ellipsis',
+        whiteSpace: 'nowrap'
+      }
+    }, subitem ? `↳ ${entity.title}` : entity.title)), h('div', {
+      style: {
+        marginTop: 3,
+        fontSize: 9,
+        color: 'var(--text-faint)',
+        overflow: 'hidden',
+        textOverflow: 'ellipsis',
+        whiteSpace: 'nowrap'
+      }
+    }, subitem ? `${statusMeta?.label || 'Não iniciado'} · ${entity.assignee || 'Sem responsável'} · ${formatDateShort(entity.startDate)} → ${formatDateShort(entity.dueDate)}` : `${item.board.name} · ${item.column.name} · ${entity.assignee || 'Sem responsável'} · ${formatDateShort(entity.startDate)} → ${formatDateShort(entity.dueDate)}`)), h('div', {
+      className: 'flex items-center gap-1',
+      style: {
+        flexShrink: 0
+      }
+    }, h('button', {
+      className: 'macro-arrow',
+      onClick: () => shiftItem(item, -1),
+      title: 'Mover um dia para trás'
+    }, '←'), h('button', {
+      className: 'macro-arrow',
+      onClick: () => shiftItem(item, 1),
+      title: 'Mover um dia para frente'
+    }, '→'))), h('div', {
+      className: 'macro-track',
+      style: {
+        width: timelineWidth,
+        minWidth: timelineWidth,
+        '--day-width': `${dayWidth}px`
+      }
+    }, todayLeft >= 0 && todayLeft <= timelineWidth && h('div', {
+      className: 'macro-today',
+      style: {
+        left: todayLeft
+      }
+    }), hasDates ? h('button', {
+      className: `macro-bar ${subitem ? 'subitem' : ''}`,
+      onClick: () => onOpenCard(item.ref),
+      title: `${entity.title} · ${formatDateShort(startDate)} a ${formatDateShort(dueDate)} · ${progress}%`,
+      style: {
+        left,
+        width,
+        border: invalidRange ? '1px solid #fecaca' : 'none',
+        background: `linear-gradient(90deg, ${color} 0%, ${color} ${Math.max(0, Math.min(100, progress))}%, ${color}99 ${Math.max(0, Math.min(100, progress))}%, ${color}99 100%)`
+      }
+    }, entity.title, width > 80 ? ` · ${progress}%` : '') : h('button', {
+      className: 'macro-bar unscheduled',
+      onClick: () => onOpenCard(item.ref),
+      title: 'Abra o card para definir início e fim'
+    }, 'Sem datas · editar')));
+  };
+  const timelineRows = grouped.flatMap(group => [h('div', {
+    key: `project:${group.project.id}`,
+    className: 'macro-row macro-project-row',
+    style: {
+      '--day-width': `${dayWidth}px`
+    }
+  }, h('div', {
+    className: 'macro-left-cell'
+  }, h('span', {
+    style: {
+      width: 9,
+      height: 9,
+      borderRadius: '50%',
+      background: group.project.color || '#71717a'
+    }
+  }), h('strong', {
+    style: {
+      fontSize: 11
+    }
+  }, group.project.name), h('span', {
+    style: {
+      fontSize: 9,
+      color: 'var(--text-faint)'
+    }
+  }, `${group.cards.length} card${group.cards.length === 1 ? '' : 's'}`)), h('div', {
+    className: 'macro-track',
+    style: {
+      width: timelineWidth,
+      minWidth: timelineWidth,
+      '--day-width': `${dayWidth}px`
+    }
+  })), ...group.cards.flatMap((item, index) => {
+    const rows = [renderItemRow({
+      ...item,
+      entity: item.card
+    }, false, index, group.cards)];
+    if (!collapsed[item.card.id]) {
+      (item.card.subitems || []).forEach(subitem => rows.push(renderItemRow({
+        ...item,
+        key: `${item.key}:${subitem.id}`,
+        type: 'subitem',
+        entity: subitem,
+        ref: {
+          ...item.ref,
+          subitemId: subitem.id
+        }
+      }, true)));
+    }
+    return rows;
+  })]);
+  return h('section', {
+    className: 'fade-in'
+  }, h('div', {
+    className: 'macro-toolbar'
+  }, h('div', null, h('div', {
+    className: 'flex items-center gap-2'
+  }, h(Calendar, {
+    size: 20,
+    style: {
+      color: 'var(--accent)'
+    }
+  }), h('h1', {
+    className: 'font-display',
+    style: {
+      fontSize: 26,
+      fontWeight: 600
+    }
+  }, 'Cronograma macro')), h('div', {
+    style: {
+      marginTop: 4,
+      fontSize: 11,
+      color: 'var(--text-faint)'
+    }
+  }, `${visibleCards.length} card${visibleCards.length === 1 ? '' : 's'} · ${totalSubitems} subitem${totalSubitems === 1 ? '' : 's'} · ${unscheduled} sem datas`)), h('div', {
+    className: 'macro-filters'
+  }, h('div', {
+    className: 'macro-filter'
+  }, h('label', null, 'Projeto'), h('select', {
+    className: 'kbn',
+    value: projectFilter,
+    onChange: e => setProjectFilter(e.target.value)
+  }, h('option', {
+    value: 'all'
+  }, 'Todos os projetos'), (projects || []).map(project => h('option', {
+    key: project.id,
+    value: project.id
+  }, project.name)))), h('div', {
+    className: 'macro-filter'
+  }, h('label', null, 'Status do card'), h('select', {
+    className: 'kbn',
+    value: statusFilter,
+    onChange: e => setStatusFilter(e.target.value)
+  }, h('option', {
+    value: 'all'
+  }, 'Todos os status'), statusOptions.map(status => h('option', {
+    key: status,
+    value: status
+  }, status)))), h('div', {
+    className: 'macro-filter'
+  }, h('label', null, 'Localizar'), h('input', {
+    className: 'kbn',
+    value: query,
+    onChange: e => setQuery(e.target.value),
+    placeholder: 'Card, pessoa, quadro…'
+  })), h('div', {
+    className: 'macro-filter',
+    style: {
+      minWidth: 220
+    }
+  }, h('label', null, 'Escala'), h('div', {
+    className: 'flex gap-1'
+  }, Object.entries({
+    week: 'Semana',
+    month: 'Mês',
+    quarter: 'Trimestre'
+  }).map(([id, label]) => h('button', {
+    key: id,
+    className: `btn ${zoom === id ? 'btn-primary' : 'btn-outline'}`,
+    onClick: () => setZoom(id),
+    style: {
+      flex: 1,
+      justifyContent: 'center',
+      padding: '8px 7px'
+    }
+  }, label)))), h('button', {
+    className: 'btn btn-outline',
+    onClick: scrollToday,
+    title: 'Centralizar a data de hoje'
+  }, h(Calendar, {
+    size: 13
+  }), ' Hoje'))), h('div', {
+    ref: scrollRef,
+    className: 'macro-scroll scrollbar-thin'
+  }, h('div', {
+    className: 'macro-table',
+    style: {
+      width: 500 + timelineWidth,
+      minWidth: 500 + timelineWidth
+    }
+  }, h('div', {
+    className: 'macro-row macro-header'
+  }, h('div', {
+    className: 'macro-left-cell'
+  }, h('div', {
+    style: {
+      fontSize: 11,
+      fontWeight: 600
+    }
+  }, 'Item / autonomia de posição'), h('div', {
+    style: {
+      marginLeft: 'auto',
+      fontSize: 9,
+      color: 'var(--text-faint)'
+    }
+  }, '↑↓ ordena · ←→ desloca 1 dia')), h('div', {
+    className: 'macro-track',
+    style: {
+      width: timelineWidth,
+      minWidth: timelineWidth,
+      height: 62,
+      '--day-width': `${dayWidth}px`
+    }
+  }, monthSegments.map(month => h('div', {
+    key: month.key,
+    className: 'macro-month',
+    style: {
+      left: month.left,
+      width: month.width
+    }
+  }, month.label, h('small', null, `${month.days} dias`))), todayLeft >= 0 && todayLeft <= timelineWidth && h('div', {
+    className: 'macro-today',
+    style: {
+      left: todayLeft
+    }
+  }))), visibleCards.length === 0 && h('div', {
+    style: {
+      padding: 36,
+      textAlign: 'center',
+      color: 'var(--text-faint)',
+      fontSize: 13
+    }
+  }, 'Nenhum card corresponde aos filtros selecionados.'), timelineRows)));
+}
+
+// ============================================================
 // MAIN APP
 // ============================================================
 function KanbanApp() {
@@ -5406,8 +6091,9 @@ function KanbanApp() {
   const [editingArea, setEditingArea] = useState(null);
   const [editingProject, setEditingProject] = useState(null);
   const [editingBoard, setEditingBoard] = useState(null);
-  const [view, setView] = useState('board'); // 'board' | 'dashboard' | 'areas' | 'projects'
+  const [view, setView] = useState('board'); // 'board' | 'timeline' | 'dashboard' | 'areas' | 'projects'
   const showDash = view === 'dashboard';
+  const showTimeline = view === 'timeline';
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [canInstall, setCanInstall] = useState(!!window.__canInstallApp);
   const [theme, setTheme] = useState(() => {
@@ -6015,9 +6701,11 @@ function KanbanApp() {
       labels: [],
       priority: 'low',
       progress: 0,
-      dueDate: '',
+      startDate: localDateKey(),
+      dueDate: shiftDateKey(localDateKey(), 7),
       assignee: '',
       attachments: [],
+      subitems: [],
       createdAt: Date.now()
     };
     updateBoard(activeBoard.id, b => ({
@@ -6074,6 +6762,56 @@ function KanbanApp() {
       ...prev,
       columnId: toColumnId
     } : prev);
+  };
+  const updateTimelineItem = (ref, changes) => {
+    setState(s => ({
+      ...s,
+      boards: s.boards.map(board => board.id !== ref.boardId ? board : {
+        ...board,
+        columns: board.columns.map(column => column.id !== ref.columnId ? column : {
+          ...column,
+          cards: column.cards.map(card => {
+            if (card.id !== ref.cardId) return card;
+            if (!ref.subitemId) return {
+              ...card,
+              ...changes
+            };
+            return {
+              ...card,
+              subitems: (card.subitems || []).map(subitem => subitem.id === ref.subitemId ? {
+                ...subitem,
+                ...changes
+              } : subitem)
+            };
+          })
+        })
+      })
+    }));
+  };
+  const reorderTimelineCards = (currentRef, targetRef, currentOrder, targetOrder) => {
+    const currentKey = `${currentRef.boardId}:${currentRef.cardId}`;
+    const targetKey = `${targetRef.boardId}:${targetRef.cardId}`;
+    setState(s => ({
+      ...s,
+      boards: s.boards.map(board => ({
+        ...board,
+        columns: board.columns.map(column => ({
+          ...column,
+          cards: column.cards.map(card => {
+            const key = `${board.id}:${card.id}`;
+            if (key === currentKey) return {
+              ...card,
+              timelineOrder: targetOrder
+            };
+            if (key === targetKey) return {
+              ...card,
+              timelineOrder: currentOrder
+            };
+            return card;
+          })
+        }))
+      }))
+    }));
   };
   const exportJSON = () => {
     const blob = new Blob([JSON.stringify(state, null, 2)], {
@@ -6166,6 +6904,18 @@ function KanbanApp() {
     cardId,
     columnId
   });
+  const openTimelineCard = ref => {
+    setState(s => ({
+      ...s,
+      activeAreaId: ref.areaId || s.activeAreaId,
+      activeProjectId: ref.projectId || s.activeProjectId,
+      activeBoardId: ref.boardId || s.activeBoardId
+    }));
+    setOpenCardRef({
+      cardId: ref.cardId,
+      columnId: ref.columnId
+    });
+  };
   const currentOpenCard = openCardRef && activeBoard ? activeBoard.columns.find(c => c.id === openCardRef.columnId)?.cards.find(x => x.id === openCardRef.cardId) : null;
   if (fbState === 'unconfigured') {
     return /*#__PURE__*/React.createElement("div", {
@@ -6378,7 +7128,7 @@ function KanbanApp() {
       letterSpacing: '0.12em',
       color: 'var(--text-faint)'
     }
-  }, "tempo real · v3 ✓"))), /*#__PURE__*/React.createElement("div", {
+  }, "tempo real · v4 ✓"))), /*#__PURE__*/React.createElement("div", {
     className: "header-divider",
     style: {
       width: 1,
@@ -6490,6 +7240,16 @@ function KanbanApp() {
     theme: theme,
     onChange: setTheme
   }), /*#__PURE__*/React.createElement("button", {
+    onClick: () => setView(v => v === 'timeline' ? 'board' : 'timeline'),
+    className: "btn",
+    style: {
+      background: showTimeline ? 'var(--accent)' : 'transparent',
+      color: showTimeline ? 'var(--accent-text)' : 'var(--text-dim)',
+      border: `1px solid ${showTimeline ? 'var(--accent)' : 'var(--border)'}`
+    }
+  }, /*#__PURE__*/React.createElement(Calendar, {
+    size: 13
+  }), " Cronograma"), /*#__PURE__*/React.createElement("button", {
     onClick: () => setView(v => v === 'dashboard' ? 'board' : 'dashboard'),
     className: "btn",
     style: {
@@ -6558,6 +7318,18 @@ function KanbanApp() {
       color: 'var(--danger)'
     }
   })), /*#__PURE__*/React.createElement("button", {
+    onClick: () => setView(v => v === 'timeline' ? 'board' : 'timeline'),
+    className: "btn",
+    title: "Cronograma macro",
+    style: {
+      padding: '7px 9px',
+      background: showTimeline ? 'var(--accent)' : 'transparent',
+      color: showTimeline ? 'var(--accent-text)' : 'var(--text-dim)',
+      border: `1px solid ${showTimeline ? 'var(--accent)' : 'var(--border)'}`
+    }
+  }, /*#__PURE__*/React.createElement(Calendar, {
+    size: 14
+  })), /*#__PURE__*/React.createElement("button", {
     onClick: () => setView(v => v === 'dashboard' ? 'board' : 'dashboard'),
     className: "btn",
     style: {
@@ -6620,7 +7392,7 @@ function KanbanApp() {
       letterSpacing: '0.12em',
       color: 'var(--text-faint)'
     }
-  }, "menu · v3 ✓"))), /*#__PURE__*/React.createElement("button", {
+  }, "menu · v4 ✓"))), /*#__PURE__*/React.createElement("button", {
     onClick: () => setMobileMenuOpen(false),
     className: "btn btn-ghost",
     style: {
@@ -6850,6 +7622,19 @@ function KanbanApp() {
     className: "btn btn-outline",
     style: {
       justifyContent: 'flex-start',
+      padding: '10px 14px',
+      borderColor: showTimeline ? 'var(--accent)' : 'var(--border)'
+    },
+    onClick: () => {
+      setView(v => v === 'timeline' ? 'board' : 'timeline');
+      setMobileMenuOpen(false);
+    }
+  }, /*#__PURE__*/React.createElement(Calendar, {
+    size: 14
+  }), " ", showTimeline ? 'Voltar ao board' : 'Abrir Cronograma'), /*#__PURE__*/React.createElement("button", {
+    className: "btn btn-outline",
+    style: {
+      justifyContent: 'flex-start',
       padding: '10px 14px'
     },
     onClick: () => {
@@ -6882,7 +7667,7 @@ function KanbanApp() {
     }
   }, /*#__PURE__*/React.createElement(Download, {
     size: 14
-  }), " Exportar JSON"))), activeArea && (state.projects || []).filter(p => p.areaId === activeAreaId).length > 0 && /*#__PURE__*/React.createElement("div", null, /*#__PURE__*/React.createElement("label", {
+  }), " Exportar JSON"))), activeArea && (state.projects || []).filter(p => p.areaId === state.activeAreaId).length > 0 && /*#__PURE__*/React.createElement("div", null, /*#__PURE__*/React.createElement("label", {
     style: {
       fontSize: 10,
       textTransform: 'uppercase',
@@ -6894,7 +7679,7 @@ function KanbanApp() {
     }
   }, "Projetos · ", activeArea.name), /*#__PURE__*/React.createElement("div", {
     className: "flex flex-col gap-1"
-  }, (state.projects || []).filter(p => p.areaId === activeAreaId).map(p => {
+  }, (state.projects || []).filter(p => p.areaId === state.activeAreaId).map(p => {
     const isActive = p.id === state.activeProjectId;
     const pBoards = state.boards.filter(b => b.projectId === p.id).length;
     return /*#__PURE__*/React.createElement("button", {
@@ -7381,6 +8166,13 @@ function KanbanApp() {
     },
     onEditProject: p => setEditingProject(p),
     onCreateProject: createProject
+  }), view === 'timeline' && state && /*#__PURE__*/React.createElement(MacroTimeline, {
+    boards: state.boards,
+    projects: state.projects || [],
+    areas: state.areas,
+    onOpenCard: openTimelineCard,
+    onUpdateItem: updateTimelineItem,
+    onReorderCards: reorderTimelineCards
   }), view === 'dashboard' && state && activeArea && /*#__PURE__*/React.createElement(Dashboard, {
     boards: state.boards,
     areas: state.areas,
@@ -7648,44 +8440,14 @@ ReactDOM.createRoot(document.getElementById('root')).render(/*#__PURE__*/React.c
 <!-- 📱 PWA: Service Worker + Botão de instalação                  -->
 <!-- ============================================================ -->
 <script>
-  // Service worker DESATIVADO. Ele era a causa do app ficar preso em versões
-  // antigas de cache no Chrome/Edge. Aqui removemos qualquer service worker e
-  // cache que tenham sobrado — SEM recarregar (evita qualquer loop). O app passa
-  // a carregar sempre a versão mais recente direto do servidor.
-  // Limpeza definitiva de service workers antigos. No Chrome, apenas chamar
-  // unregister() não solta a aba atual imediatamente; por isso fazemos UMA
-  // recarga controlada após remover registros e caches.
-  (function cleanupLegacyServiceWorker() {
-    var reloadKey = 'kanban-sw-cleanup-v3';
-    var hasController = !!(navigator.serviceWorker && navigator.serviceWorker.controller);
-
-    var unregisterPromise = Promise.resolve();
-    if ('serviceWorker' in navigator) {
-      unregisterPromise = navigator.serviceWorker.getRegistrations()
-        .then(function (regs) {
-          return Promise.all(regs.map(function (r) { return r.unregister(); }));
-        })
-        .catch(function () {});
-    }
-
-    var cachePromise = Promise.resolve();
-    if (window.caches && caches.keys) {
-      cachePromise = caches.keys()
-        .then(function (keys) {
-          return Promise.all(keys.map(function (k) { return caches.delete(k); }));
-        })
-        .catch(function () {});
-    }
-
-    Promise.all([unregisterPromise, cachePromise]).then(function () {
-      if (hasController && !sessionStorage.getItem(reloadKey)) {
-        sessionStorage.setItem(reloadKey, '1');
-        var cleanUrl = new URL(window.location.href);
-        cleanUrl.searchParams.set('_refresh', Date.now().toString());
-        window.location.replace(cleanUrl.toString());
-      }
+  // Registra o service worker (somente em produção, em HTTPS ou localhost)
+  if ('serviceWorker' in navigator) {
+    window.addEventListener('load', () => {
+      navigator.serviceWorker.register('sw.js').catch(err => {
+        console.warn('SW registration failed:', err);
+      });
     });
-  })();
+  }
 
   // Captura o evento beforeinstallprompt (Android/Chrome)
   let deferredInstallPrompt = null;
