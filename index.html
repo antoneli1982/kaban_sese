@@ -281,7 +281,7 @@
   }
   .app-main { padding-left: 228px !important; padding-right: 20px !important; }
   .app-header { padding-right: 20px !important; }
-  .app-header .header-left { min-width: 0; overflow: hidden; }
+  .app-header .header-left { min-width: 0; overflow: visible; }
 
   .mobile-drawer-backdrop {
     position: fixed; inset: 0; z-index: 40;
@@ -5676,6 +5676,8 @@ function MacroTimeline({
   const [statusFilter, setStatusFilter] = useState('all');
   const [query, setQuery] = useState('');
   const [zoom, setZoom] = useState('month');
+  const [rangeStartInput, setRangeStartInput] = useState('');
+  const [rangeEndInput, setRangeEndInput] = useState('');
   const [collapsed, setCollapsed] = useState({});
   const scrollRef = useRef(null);
   const zoomConfig = {
@@ -5764,8 +5766,10 @@ function MacroTimeline({
     });
   });
   scheduledDates.sort();
-  const rangeStart = shiftDateKey(scheduledDates[0] || today, -zoomConfig.padding);
-  const rangeEnd = shiftDateKey(scheduledDates[scheduledDates.length - 1] || today, zoomConfig.padding * 2);
+  const autoRangeStart = shiftDateKey(scheduledDates[0] || today, -zoomConfig.padding);
+  const autoRangeEnd = shiftDateKey(scheduledDates[scheduledDates.length - 1] || today, zoomConfig.padding * 2);
+  const rangeStart = rangeStartInput || autoRangeStart;
+  const rangeEnd = (rangeEndInput || autoRangeEnd) < rangeStart ? rangeStart : rangeEndInput || autoRangeEnd;
   const totalDays = Math.max(1, dayDistance(rangeStart, rangeEnd) + 1);
   const dayWidth = Math.max(zoomConfig.dayWidth, 900 / totalDays);
   const timelineWidth = Math.ceil(totalDays * dayWidth);
@@ -6040,6 +6044,24 @@ function MacroTimeline({
     key: status,
     value: status
   }, status)))), h('div', {
+    className: 'macro-filter'
+  }, h('label', null, 'Data inicial'), h('input', {
+    className: 'kbn',
+    type: 'date',
+    value: rangeStartInput,
+    max: rangeEndInput || undefined,
+    onChange: e => setRangeStartInput(e.target.value),
+    title: 'Início do período exibido no cronograma'
+  })), h('div', {
+    className: 'macro-filter'
+  }, h('label', null, 'Data final'), h('input', {
+    className: 'kbn',
+    type: 'date',
+    value: rangeEndInput,
+    min: rangeStartInput || undefined,
+    onChange: e => setRangeEndInput(e.target.value),
+    title: 'Fim do período exibido no cronograma'
+  })), h('div', {
     className: 'macro-filter'
   }, h('label', null, 'Localizar'), h('input', {
     className: 'kbn',
