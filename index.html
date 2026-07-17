@@ -382,6 +382,14 @@
     gap: 8px; align-items: end; padding: 10px 12px; border-top: 1px solid var(--border-soft);
   }
   .subitem-row label { display: block; margin-bottom: 4px; font-size: 9px; text-transform: uppercase; letter-spacing: .06em; color: var(--text-faint); }
+  .timeline-create-grid {
+    display: grid; grid-template-columns: 1fr 1fr; gap: 12px;
+  }
+  .timeline-create-grid .full-row { grid-column: 1 / -1; }
+  .timeline-create-grid label {
+    display: block; margin-bottom: 5px; font-size: 10px; font-weight: 600;
+    text-transform: uppercase; letter-spacing: .07em; color: var(--text-faint);
+  }
 
   /* Alerta de prazo pulsante */
   @keyframes pulseAlert {
@@ -465,6 +473,8 @@
     .macro-bar { top: 17px; }
     .subitem-row { grid-template-columns: 1fr; }
     .subitem-row .subitem-title { grid-column: auto; }
+    .timeline-create-grid { grid-template-columns: 1fr; }
+    .timeline-create-grid .full-row { grid-column: auto; }
   }
 
   /* Esconde scrollbar no carrossel horizontal no mobile p/ visual mais limpo */
@@ -5670,7 +5680,8 @@ function MacroTimeline({
   areas,
   onOpenCard,
   onUpdateItem,
-  onReorderCards
+  onReorderCards,
+  onCreateItem
 }) {
   const [projectFilter, setProjectFilter] = useState('all');
   const [statusFilter, setStatusFilter] = useState('all');
@@ -5678,6 +5689,17 @@ function MacroTimeline({
   const [zoom, setZoom] = useState('month');
   const [rangeStartInput, setRangeStartInput] = useState('');
   const [rangeEndInput, setRangeEndInput] = useState('');
+  const [createOpen, setCreateOpen] = useState(false);
+  const [createDraft, setCreateDraft] = useState({
+    projectId: '',
+    boardId: '',
+    columnId: '',
+    title: '',
+    description: '',
+    assignee: '',
+    startDate: '',
+    dueDate: ''
+  });
   const [collapsed, setCollapsed] = useState({});
   const scrollRef = useRef(null);
   const zoomConfig = {
@@ -5757,6 +5779,49 @@ function MacroTimeline({
   grouped.sort((a, b) => (projects || []).findIndex(p => p.id === a.project.id) - (projects || []).findIndex(p => p.id === b.project.id));
   grouped.forEach(group => group.cards.sort((a, b) => a.position - b.position || (a.card.createdAt || 0) - (b.card.createdAt || 0)));
   const today = localDateKey();
+  const draftBoard = (boards || []).find(board => board.id === createDraft.boardId);
+  const openCreateItem = () => {
+    const preferredBoard = (boards || []).find(board => projectFilter !== 'all' && board.projectId === projectFilter) || (boards || [])[0];
+    const preferredColumn = preferredBoard?.columns?.[0];
+    setCreateDraft({
+      projectId: preferredBoard?.projectId || '',
+      boardId: preferredBoard?.id || '',
+      columnId: preferredColumn?.id || '',
+      title: '',
+      description: '',
+      assignee: '',
+      startDate: today,
+      dueDate: shiftDateKey(today, 7)
+    });
+    setCreateOpen(true);
+  };
+  const changeCreateProject = projectId => {
+    const board = (boards || []).find(item => item.projectId === projectId);
+    setCreateDraft(draft => ({
+      ...draft,
+      projectId,
+      boardId: board?.id || '',
+      columnId: board?.columns?.[0]?.id || ''
+    }));
+  };
+  const changeCreateBoard = boardId => {
+    const board = (boards || []).find(item => item.id === boardId);
+    setCreateDraft(draft => ({
+      ...draft,
+      boardId,
+      projectId: board?.projectId || draft.projectId,
+      columnId: board?.columns?.[0]?.id || ''
+    }));
+  };
+  const submitCreateItem = () => {
+    if (!createDraft.title.trim() || !createDraft.boardId || !createDraft.columnId) return;
+    if (createDraft.startDate && createDraft.dueDate && createDraft.startDate > createDraft.dueDate) {
+      alert('A data final não pode ser anterior à data inicial.');
+      return;
+    }
+    onCreateItem(createDraft);
+    setCreateOpen(false);
+  };
   const scheduledDates = [today];
   visibleCards.forEach(item => {
     const entities = [item.card, ...(item.card.subitems || [])];
@@ -6100,7 +6165,13 @@ function MacroTimeline({
     title: 'Centralizar a data de hoje'
   }, h(Calendar, {
     size: 13
-  }), ' Hoje'))), h('div', {
+  }), ' Hoje'), h('button', {
+    className: 'btn btn-primary',
+    onClick: openCreateItem,
+    title: 'Criar card no cronograma e no Kanban'
+  }, h(Plus, {
+    size: 14
+  }), ' Novo item'))), h('div', {
     ref: scrollRef,
     className: 'macro-scroll scrollbar-thin'
   }, h('div', {
@@ -6151,7 +6222,183 @@ function MacroTimeline({
       color: 'var(--text-faint)',
       fontSize: 13
     }
-  }, 'Nenhum card corresponde aos filtros selecionados.'), timelineRows)));
+  }, 'Nenhum card corresponde aos filtros selecionados.'), timelineRows)), createOpen && h('div', {
+    className: 'fixed inset-0 flex items-center justify-center',
+    style: {
+      zIndex: 70,
+      padding: 16,
+      background: 'rgba(0,0,0,.58)'
+    },
+    onClick: () => setCreateOpen(false)
+  }, h('div', {
+    className: 'kbn-modal modal-in',
+    role: 'dialog',
+    'aria-modal': 'true',
+    'aria-labelledby': 'timeline-create-title',
+    onClick: event => event.stopPropagation(),
+    style: {
+      width: 'min(720px, 100%)',
+      maxHeight: 'calc(100vh - 32px)',
+      overflow: 'auto',
+      background: 'var(--bg-soft)',
+      border: '1px solid var(--border)',
+      borderRadius: 14,
+      boxShadow: '0 24px 70px rgba(0,0,0,.4)'
+    }
+  }, h('div', {
+    className: 'flex items-center justify-between',
+    style: {
+      padding: '16px 18px',
+      borderBottom: '1px solid var(--border-soft)'
+    }
+  }, h('div', null, h('h2', {
+    id: 'timeline-create-title',
+    className: 'font-display',
+    style: {
+      fontSize: 18,
+      fontWeight: 600
+    }
+  }, 'Novo item no cronograma'), h('div', {
+    style: {
+      marginTop: 3,
+      fontSize: 11,
+      color: 'var(--text-faint)'
+    }
+  }, 'Ao salvar, o card também será criado no Kanban.')), h('button', {
+    className: 'btn btn-ghost',
+    onClick: () => setCreateOpen(false),
+    title: 'Fechar',
+    'aria-label': 'Fechar'
+  }, h(X, {
+    size: 18
+  }))), h('div', {
+    className: 'timeline-create-grid',
+    style: {
+      padding: 18
+    }
+  }, h('div', null, h('label', {
+    htmlFor: 'timeline-create-project'
+  }, 'Projeto'), h('select', {
+    id: 'timeline-create-project',
+    className: 'kbn',
+    value: createDraft.projectId,
+    onChange: event => changeCreateProject(event.target.value)
+  }, (projects || []).filter(project => (boards || []).some(board => board.projectId === project.id)).map(project => h('option', {
+    key: project.id,
+    value: project.id
+  }, project.name)))), h('div', null, h('label', {
+    htmlFor: 'timeline-create-board'
+  }, 'Quadro'), h('select', {
+    id: 'timeline-create-board',
+    className: 'kbn',
+    value: createDraft.boardId,
+    onChange: event => changeCreateBoard(event.target.value)
+  }, (boards || []).filter(board => board.projectId === createDraft.projectId).map(board => h('option', {
+    key: board.id,
+    value: board.id
+  }, board.name)))), h('div', null, h('label', {
+    htmlFor: 'timeline-create-column'
+  }, 'Status / coluna'), h('select', {
+    id: 'timeline-create-column',
+    className: 'kbn',
+    value: createDraft.columnId,
+    onChange: event => setCreateDraft(draft => ({
+      ...draft,
+      columnId: event.target.value
+    }))
+  }, (draftBoard?.columns || []).map(column => h('option', {
+    key: column.id,
+    value: column.id
+  }, column.name)))), h('div', null, h('label', {
+    htmlFor: 'timeline-create-assignee'
+  }, 'Responsável'), h('input', {
+    id: 'timeline-create-assignee',
+    className: 'kbn',
+    value: createDraft.assignee,
+    onChange: event => setCreateDraft(draft => ({
+      ...draft,
+      assignee: event.target.value
+    })),
+    placeholder: 'Nome da pessoa'
+  })), h('div', {
+    className: 'full-row'
+  }, h('label', {
+    htmlFor: 'timeline-create-card-title'
+  }, 'Título do card *'), h('input', {
+    id: 'timeline-create-card-title',
+    className: 'kbn',
+    autoFocus: true,
+    value: createDraft.title,
+    onChange: event => setCreateDraft(draft => ({
+      ...draft,
+      title: event.target.value
+    })),
+    placeholder: 'O que precisa ser feito?'
+  })), h('div', null, h('label', {
+    htmlFor: 'timeline-create-start'
+  }, 'Data inicial'), h('input', {
+    id: 'timeline-create-start',
+    className: 'kbn',
+    type: 'date',
+    value: createDraft.startDate,
+    max: createDraft.dueDate || undefined,
+    onChange: event => setCreateDraft(draft => ({
+      ...draft,
+      startDate: event.target.value
+    }))
+  })), h('div', null, h('label', {
+    htmlFor: 'timeline-create-end'
+  }, 'Data final'), h('input', {
+    id: 'timeline-create-end',
+    className: 'kbn',
+    type: 'date',
+    value: createDraft.dueDate,
+    min: createDraft.startDate || undefined,
+    onChange: event => setCreateDraft(draft => ({
+      ...draft,
+      dueDate: event.target.value
+    }))
+  })), h('div', {
+    className: 'full-row'
+  }, h('label', {
+    htmlFor: 'timeline-create-description'
+  }, 'Descrição'), h('textarea', {
+    id: 'timeline-create-description',
+    className: 'kbn',
+    rows: 3,
+    value: createDraft.description,
+    onChange: event => setCreateDraft(draft => ({
+      ...draft,
+      description: event.target.value
+    })),
+    placeholder: 'Detalhes opcionais'
+  }))), h('div', {
+    className: 'flex items-center justify-between',
+    style: {
+      padding: '14px 18px',
+      gap: 10,
+      borderTop: '1px solid var(--border-soft)'
+    }
+  }, h('span', {
+    style: {
+      fontSize: 11,
+      color: 'var(--text-faint)'
+    }
+  }, 'Sincronização automática com o Kanban'), h('div', {
+    className: 'flex gap-2'
+  }, h('button', {
+    className: 'btn btn-outline',
+    onClick: () => setCreateOpen(false)
+  }, 'Cancelar'), h('button', {
+    className: 'btn btn-primary',
+    disabled: !createDraft.title.trim() || !createDraft.boardId || !createDraft.columnId,
+    onClick: submitCreateItem,
+    style: {
+      opacity: !createDraft.title.trim() || !createDraft.boardId || !createDraft.columnId ? .5 : 1
+    }
+  }, h(Plus, {
+    size: 14
+  }), ' Criar no cronograma e Kanban'))))));
 }
 
 // ============================================================
@@ -6806,6 +7053,32 @@ function KanbanApp() {
         ...c,
         cards: [...c.cards, card]
       } : c)
+    }));
+  };
+  const addTimelineCard = draft => {
+    const card = {
+      id: uid('card'),
+      title: draft.title.trim(),
+      description: draft.description?.trim() || '',
+      labels: [],
+      priority: 'low',
+      progress: 0,
+      startDate: draft.startDate || '',
+      dueDate: draft.dueDate || '',
+      assignee: draft.assignee?.trim() || '',
+      attachments: [],
+      subitems: [],
+      createdAt: Date.now()
+    };
+    setState(s => ({
+      ...s,
+      boards: s.boards.map(board => board.id === draft.boardId ? {
+        ...board,
+        columns: board.columns.map(column => column.id === draft.columnId ? {
+          ...column,
+          cards: [...column.cards, card]
+        } : column)
+      } : board)
     }));
   };
   const saveCard = updatedCard => {
@@ -8268,7 +8541,8 @@ function KanbanApp() {
     areas: state.areas,
     onOpenCard: openTimelineCard,
     onUpdateItem: updateTimelineItem,
-    onReorderCards: reorderTimelineCards
+    onReorderCards: reorderTimelineCards,
+    onCreateItem: addTimelineCard
   }), view === 'dashboard' && state && activeArea && /*#__PURE__*/React.createElement(Dashboard, {
     boards: state.boards,
     areas: state.areas,
