@@ -34,7 +34,7 @@
     try {
       var t = localStorage.getItem('kanban-theme') || 'blue';
       document.documentElement.setAttribute('data-theme', t);
-      var c = { blue: '#3b5cff', green: '#10b981', black: '#000000' }[t] || '#3b5cff';
+      var c = { blue: '#3b5cff', green: '#10b981', black: '#000000', light: '#f8fafc' }[t] || '#3b5cff';
       var m = document.querySelector('meta[name="theme-color"]');
       if (m) m.setAttribute('content', c);
     } catch (e) {}
@@ -96,6 +96,24 @@
     --danger: #ef4444;
   }
 
+  /* ☀️ Tema Claro — contraste AA para textos e controles */
+  [data-theme="light"] {
+    --bg: #f1f5f9;
+    --bg-soft: #ffffff;
+    --surface: #f8fafc;
+    --surface-hover: #eef2f7;
+    --border: #cbd5e1;
+    --border-soft: #e2e8f0;
+    --text: #0f172a;
+    --text-dim: #334155;
+    --text-faint: #475569;
+    --accent: #3154e8;
+    --accent-hover: #2444c7;
+    --accent-soft: #e8edff;
+    --accent-text: #ffffff;
+    --danger: #be123c;
+  }
+
   * { box-sizing: border-box; margin: 0; padding: 0; font-family: inherit; }
   html, body { height: 100%; }
   body {
@@ -111,8 +129,8 @@
 
   .scrollbar-thin::-webkit-scrollbar { height: 8px; width: 8px; }
   .scrollbar-thin::-webkit-scrollbar-track { background: transparent; }
-  .scrollbar-thin::-webkit-scrollbar-thumb { background: #27272a; border-radius: 4px; }
-  .scrollbar-thin::-webkit-scrollbar-thumb:hover { background: #3f3f46; }
+  .scrollbar-thin::-webkit-scrollbar-thumb { background: var(--border); border-radius: 4px; }
+  .scrollbar-thin::-webkit-scrollbar-thumb:hover { background: var(--text-faint); }
 
   @keyframes fadeIn { from { opacity: 0; transform: translateY(4px); } to { opacity: 1; transform: translateY(0); } }
   .fade-in { animation: fadeIn 0.18s ease-out; }
@@ -153,11 +171,11 @@
   .btn-ghost { background: transparent; color: var(--text-dim); }
   .btn-ghost:hover { background: var(--surface); color: var(--text); }
   .btn-outline { background: transparent; color: var(--text); border-color: var(--border); }
-  .btn-outline:hover { background: var(--surface); border-color: #3f3f46; }
+  .btn-outline:hover { background: var(--surface); border-color: var(--text-faint); }
   .btn-danger { background: transparent; color: var(--danger); }
   .btn-danger:hover { background: rgba(225, 29, 72, 0.08); }
 
-  .hover-bg:hover { background: rgba(255,255,255,0.05); }
+  .hover-bg:hover { background: color-mix(in srgb, var(--text) 6%, transparent); }
   .hover-row:hover .row-action { opacity: 1; }
   .row-action { opacity: 0; transition: opacity 0.12s; }
 
@@ -319,6 +337,10 @@
     cursor: pointer; font-size: 13px; line-height: 1;
   }
   .macro-arrow:hover { border-color: var(--accent); color: var(--text); }
+  .macro-shift-controls {
+    display: flex; flex-direction: column; align-items: center; gap: 4px;
+    flex-shrink: 0;
+  }
   .subitem-editor {
     border: 1px solid var(--border); border-radius: 10px; overflow: hidden;
   }
@@ -902,6 +924,11 @@ const THEMES = [{
   name: 'Preto',
   swatch: '#f4f4f5',
   dot2: '#000000'
+}, {
+  id: 'light',
+  name: 'Claro',
+  swatch: '#ffffff',
+  dot2: '#cbd5e1'
 }];
 const DEFAULT_THEME = 'blue';
 const uid = (prefix = 'id') => `${prefix}_${Date.now().toString(36)}_${Math.random().toString(36).slice(2, 8)}`;
@@ -5839,10 +5866,8 @@ function MacroTimeline({
         whiteSpace: 'nowrap'
       }
     }, subitem ? `${statusMeta?.label || 'Não iniciado'} · ${entity.assignee || 'Sem responsável'} · ${formatDateShort(entity.startDate)} → ${formatDateShort(entity.dueDate)}` : `${item.board.name} · ${item.column.name} · ${entity.assignee || 'Sem responsável'} · ${formatDateShort(entity.startDate)} → ${formatDateShort(entity.dueDate)}`)), h('div', {
-      className: 'flex items-center gap-1',
-      style: {
-        flexShrink: 0
-      }
+      className: 'macro-shift-controls',
+      'aria-label': 'Deslocar item no eixo de tempo'
     }, h('button', {
       className: 'macro-arrow',
       onClick: () => shiftItem(item, -1),
@@ -6137,7 +6162,8 @@ function KanbanApp() {
     const themeColor = {
       blue: '#3b5cff',
       green: '#10b981',
-      black: '#000000'
+      black: '#000000',
+      light: '#f8fafc'
     }[theme] || '#3b5cff';
     if (meta) meta.setAttribute('content', themeColor);
     try {
