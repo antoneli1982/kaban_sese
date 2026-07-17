@@ -6045,20 +6045,26 @@ function MacroTimeline({
     value: status
   }, status)))), h('div', {
     className: 'macro-filter'
-  }, h('label', null, 'Data inicial'), h('input', {
+  }, h('label', {
+    htmlFor: 'macro-range-start'
+  }, 'Data inicial'), h('input', {
+    id: 'macro-range-start',
     className: 'kbn',
     type: 'date',
-    value: rangeStartInput,
-    max: rangeEndInput || undefined,
+    value: rangeStart,
+    max: rangeEnd,
     onChange: e => setRangeStartInput(e.target.value),
     title: 'Início do período exibido no cronograma'
   })), h('div', {
     className: 'macro-filter'
-  }, h('label', null, 'Data final'), h('input', {
+  }, h('label', {
+    htmlFor: 'macro-range-end'
+  }, 'Data final'), h('input', {
+    id: 'macro-range-end',
     className: 'kbn',
     type: 'date',
-    value: rangeEndInput,
-    min: rangeStartInput || undefined,
+    value: rangeEnd,
+    min: rangeStart,
     onChange: e => setRangeEndInput(e.target.value),
     title: 'Fim do período exibido no cronograma'
   })), h('div', {
