@@ -370,10 +370,6 @@
     cursor: pointer; font-size: 13px; line-height: 1;
   }
   .macro-arrow:hover { border-color: var(--accent); color: var(--text); }
-  .macro-shift-controls {
-    display: flex; flex-direction: column; align-items: center; gap: 4px;
-    flex-shrink: 0;
-  }
   .subitem-editor {
     border: 1px solid var(--border); border-radius: 10px; overflow: hidden;
   }
@@ -988,6 +984,7 @@ const INITIAL_STATE = () => {
     activeBoardId: boardId,
     activeAreaId: areaId,
     activeProjectId: projectId,
+    folders: [],
     departments: DEFAULT_DEPARTMENTS,
     areas: [{
       id: areaId,
@@ -3690,11 +3687,30 @@ function AreasOverview({
         fontWeight: 600
       }
     }, a.name)), /*#__PURE__*/React.createElement("div", {
-      className: "flex items-center gap-1",
+    className: "flex items-center gap-1",
+    style: {
+      flexShrink: 0
+    }
+    }, /*#__PURE__*/React.createElement("select", {
+      className: "kbn",
+      value: p.folderId || '',
+      title: "Mover projeto para uma pasta",
+      onClick: event => event.stopPropagation(),
+      onChange: event => {
+        event.stopPropagation();
+        onMoveProjectToFolder(p.id, event.target.value);
+      },
       style: {
-        flexShrink: 0
+        width: 118,
+        padding: '5px 24px 5px 7px',
+        fontSize: 10
       }
-    }, s.alerts.total > 0 && (() => {
+    }, /*#__PURE__*/React.createElement("option", {
+      value: ""
+    }, "Sem pasta"), areaFolders.map(folder => /*#__PURE__*/React.createElement("option", {
+      key: folder.id,
+      value: folder.id
+    }, folder.name))), s.alerts.total > 0 && (() => {
       const high = s.alerts.overdue + s.alerts.today > 0;
       const ac = high ? '#e11d48' : '#f59e0b';
       return /*#__PURE__*/React.createElement("span", {
@@ -3848,13 +3864,21 @@ function AreasOverview({
 function ProjectsOverview({
   area,
   projects,
+  folders,
   boards,
   activeProjectId,
   onBackToAreas,
   onOpenProject,
   onEditProject,
-  onCreateProject
+  onCreateProject,
+  onCreateFolder,
+  onRenameFolder,
+  onDeleteFolder,
+  onMoveProjectToFolder
 }) {
+  const [folderFilter, setFolderFilter] = useState('all');
+  const areaFolders = (folders || []).filter(folder => folder.areaId === area.id);
+  const visibleProjects = folderFilter === 'all' ? projects : projects.filter(project => (project.folderId || 'none') === folderFilter);
   const stats = projectId => {
     const pBoards = boards.filter(b => b.projectId === projectId);
     const cards = pBoards.flatMap(b => b.columns.flatMap(c => c.cards));
@@ -3924,13 +3948,69 @@ function ProjectsOverview({
     className: "btn btn-primary",
     onClick: () => {
       const n = prompt('Nome do novo projeto:');
-      if (n?.trim()) onCreateProject(n.trim());
+      if (n?.trim()) onCreateProject(n.trim(), folderFilter !== 'all' && folderFilter !== 'none' ? folderFilter : '');
     }
   }, /*#__PURE__*/React.createElement(Plus, {
     size: 14
   }), " Novo projeto")), /*#__PURE__*/React.createElement("div", {
+    className: "flex items-center flex-wrap gap-2",
+    style: {
+      marginBottom: 16,
+      padding: 10,
+      background: 'var(--surface)',
+      border: '1px solid var(--border)',
+      borderRadius: 12
+    }
+  }, /*#__PURE__*/React.createElement("button", {
+    className: `btn ${folderFilter === 'all' ? 'btn-primary' : 'btn-outline'}`,
+    onClick: () => setFolderFilter('all')
+  }, /*#__PURE__*/React.createElement(FolderIcon, {
+    size: 14
+  }), " Todos"), /*#__PURE__*/React.createElement("button", {
+    className: `btn ${folderFilter === 'none' ? 'btn-primary' : 'btn-outline'}`,
+    onClick: () => setFolderFilter('none')
+  }, "Sem pasta"), areaFolders.map(folder => /*#__PURE__*/React.createElement("div", {
+    key: folder.id,
+    className: "flex items-center"
+  }, /*#__PURE__*/React.createElement("button", {
+    className: `btn ${folderFilter === folder.id ? 'btn-primary' : 'btn-outline'}`,
+    onClick: () => setFolderFilter(folder.id),
+    style: {
+      borderTopRightRadius: 0,
+      borderBottomRightRadius: 0
+    }
+  }, /*#__PURE__*/React.createElement(FolderIcon, {
+    size: 14
+  }), " ", folder.name), /*#__PURE__*/React.createElement("button", {
+    className: "btn btn-outline",
+    title: "Renomear ou excluir pasta",
+    onClick: () => {
+      const name = prompt('Novo nome da pasta (deixe vazio para excluir):', folder.name);
+      if (name === null) return;
+      if (name.trim()) onRenameFolder(folder.id, name.trim());else if (confirm(`Excluir a pasta "${folder.name}"? Os projetos ficarão sem pasta.`)) {
+        onDeleteFolder(folder.id);
+        setFolderFilter('all');
+      }
+    },
+    style: {
+      padding: '7px 8px',
+      borderTopLeftRadius: 0,
+      borderBottomLeftRadius: 0,
+      borderLeft: 0
+    }
+  }, /*#__PURE__*/React.createElement(Settings, {
+    size: 13
+  })))), /*#__PURE__*/React.createElement("button", {
+    className: "btn btn-outline",
+    onClick: () => {
+      const name = prompt('Nome da nova pasta:');
+      if (name?.trim()) onCreateFolder(name.trim());
+    }
+  }, /*#__PURE__*/React.createElement(Plus, {
+    size: 14
+  }), " Nova pasta")), /*#__PURE__*/React.createElement("div", {
     className: "overview-grid"
-  }, projects.map(p => {
+  }, visibleProjects.map(p => {
     const s = stats(p.id);
     const isActive = p.id === activeProjectId;
     const c = p.color || '#8b5cf6';
@@ -4079,7 +4159,7 @@ function ProjectsOverview({
   }), /*#__PURE__*/React.createElement("button", {
     onClick: () => {
       const n = prompt('Nome do novo projeto:');
-      if (n?.trim()) onCreateProject(n.trim());
+      if (n?.trim()) onCreateProject(n.trim(), folderFilter !== 'all' && folderFilter !== 'none' ? folderFilter : '');
     },
     className: "overview-card",
     style: {
@@ -5979,15 +6059,6 @@ function MacroTimeline({
     if (!scrollRef.current) return;
     scrollRef.current.scrollLeft = Math.max(0, 500 + todayLeft - scrollRef.current.clientWidth / 2);
   };
-  const shiftItem = (item, amount) => {
-    const entity = item.entity;
-    const startDate = entity.startDate || entity.dueDate || today;
-    const dueDate = entity.dueDate || entity.startDate || shiftDateKey(startDate, 7);
-    onUpdateItem(item.ref, {
-      startDate: shiftDateKey(startDate, amount),
-      dueDate: shiftDateKey(dueDate, amount)
-    });
-  };
   const renderItemRow = (item, subitem = false, cardIndex = 0, siblings = []) => {
     const entity = item.entity;
     const startDate = entity.startDate || entity.dueDate;
@@ -6083,18 +6154,7 @@ function MacroTimeline({
         textOverflow: 'ellipsis',
         whiteSpace: 'nowrap'
       }
-    }, subitem ? `${statusMeta?.label || 'Não iniciado'} · ${entity.assignee || 'Sem responsável'} · ${formatDateShort(entity.startDate)} → ${formatDateShort(entity.dueDate)}` : `${item.board.name} · ${item.column.name} · ${entity.assignee || 'Sem responsável'} · ${formatDateShort(entity.startDate)} → ${formatDateShort(entity.dueDate)}`)), h('div', {
-      className: 'macro-shift-controls',
-      'aria-label': 'Deslocar item no eixo de tempo'
-    }, h('button', {
-      className: 'macro-arrow',
-      onClick: () => shiftItem(item, -1),
-      title: 'Mover um dia para trás'
-    }, '←'), h('button', {
-      className: 'macro-arrow',
-    onClick: () => shiftItem(item, 1),
-    title: 'Mover um dia para frente'
-    }, '→')), h('button', {
+    }, subitem ? `${statusMeta?.label || 'Não iniciado'} · ${entity.assignee || 'Sem responsável'} · ${formatDateShort(entity.startDate)} → ${formatDateShort(entity.dueDate)}` : `${item.board.name} · ${item.column.name} · ${entity.assignee || 'Sem responsável'} · ${formatDateShort(entity.startDate)} → ${formatDateShort(entity.dueDate)}`)), h('button', {
       className: 'macro-arrow',
       onClick: () => {
         if (confirm(`Excluir ${subitem ? 'o subitem' : 'o card'} "${entity.title}"?`)) onDeleteItem(item.ref);
@@ -6320,7 +6380,7 @@ function MacroTimeline({
       fontSize: 9,
       color: 'var(--text-faint)'
     }
-  }, '↑↓ ordena · ←→ desloca 1 dia')), h('div', {
+  }, '↑↓ ordena · lixeira exclui')), h('div', {
     className: 'macro-track',
     style: {
       width: timelineWidth,
@@ -7002,6 +7062,7 @@ function KanbanApp() {
   const deleteArea = areaId => {
     setState(s => {
       const remainingAreas = s.areas.filter(a => a.id !== areaId);
+      const remainingFolders = (s.folders || []).filter(folder => folder.areaId !== areaId);
       const remainingProjects = (s.projects || []).filter(p => p.areaId !== areaId);
       const remainingBoards = s.boards.filter(b => b.areaId !== areaId);
       if (remainingAreas.length === 0) return INITIAL_STATE();
@@ -7011,6 +7072,7 @@ function KanbanApp() {
       return {
         ...s,
         areas: remainingAreas,
+        folders: remainingFolders,
         projects: remainingProjects,
         boards: remainingBoards,
         activeAreaId: newActiveArea.id,
@@ -7018,6 +7080,48 @@ function KanbanApp() {
         activeBoardId: newActiveBoard?.id
       };
     });
+  };
+
+  // ---- Folder management (pastas dentro de cada área) ----
+  const createFolder = name => {
+    const folder = {
+      id: uid('folder'),
+      name,
+      areaId: state.activeAreaId,
+      createdAt: Date.now()
+    };
+    setState(s => ({
+      ...s,
+      folders: [...(s.folders || []), folder]
+    }));
+  };
+  const renameFolder = (folderId, name) => {
+    setState(s => ({
+      ...s,
+      folders: (s.folders || []).map(folder => folder.id === folderId ? {
+        ...folder,
+        name
+      } : folder)
+    }));
+  };
+  const deleteFolder = folderId => {
+    setState(s => ({
+      ...s,
+      folders: (s.folders || []).filter(folder => folder.id !== folderId),
+      projects: (s.projects || []).map(project => project.folderId === folderId ? {
+        ...project,
+        folderId: ''
+      } : project)
+    }));
+  };
+  const moveProjectToFolder = (projectId, folderId) => {
+    setState(s => ({
+      ...s,
+      projects: (s.projects || []).map(project => project.id === projectId ? {
+        ...project,
+        folderId: folderId || ''
+      } : project)
+    }));
   };
   const selectArea = areaId => {
     setState(s => {
@@ -7033,12 +7137,13 @@ function KanbanApp() {
   };
 
   // ---- Project management ----
-  const createProject = name => {
+  const createProject = (name, folderId = '') => {
     const color = BOARD_COLORS[Math.floor(Math.random() * BOARD_COLORS.length)];
     const newProject = {
       id: uid('p'),
       name,
       areaId: state.activeAreaId,
+      folderId,
       color,
       createdAt: Date.now()
     };
@@ -7432,6 +7537,7 @@ function KanbanApp() {
           }));
         }
         if (!data.departments) data.departments = DEFAULT_DEPARTMENTS;
+        if (!data.folders) data.folders = [];
         data.boards = data.boards.map((b, i) => b.color ? b : {
           ...b,
           color: data.areas.find(a => a.id === b.areaId)?.color || BOARD_COLORS[i % BOARD_COLORS.length]
@@ -8738,6 +8844,7 @@ function KanbanApp() {
   }), view === 'projects' && state && activeArea && /*#__PURE__*/React.createElement(ProjectsOverview, {
     area: activeArea,
     projects: (state.projects || []).filter(p => p.areaId === activeArea.id),
+    folders: state.folders || [],
     boards: state.boards,
     activeProjectId: state.activeProjectId,
     onBackToAreas: () => setView('areas'),
@@ -8746,7 +8853,11 @@ function KanbanApp() {
       setView('board');
     },
     onEditProject: p => setEditingProject(p),
-    onCreateProject: createProject
+    onCreateProject: createProject,
+    onCreateFolder: createFolder,
+    onRenameFolder: renameFolder,
+    onDeleteFolder: deleteFolder,
+    onMoveProjectToFolder: moveProjectToFolder
   }), view === 'timeline' && state && /*#__PURE__*/React.createElement(MacroTimeline, {
     boards: state.boards,
     projects: state.projects || [],
